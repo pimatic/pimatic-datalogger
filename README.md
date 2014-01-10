@@ -1,2 +1,3 @@
-pimatic-datalogger
-==================
+pimatic datalogger
+=======================
+

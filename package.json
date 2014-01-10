@@ -1,0 +1,27 @@
+{
+  "name": "pimatic-datalogger",
+  "description": "datalogger",
+  "author": "Oliver Schneider <oliverschneider89+sweetpi@gmail.com> (http://sweetpi.de)",
+  "main": "datalogger.coffee",
+  "files": [
+    "doc",
+    "datalogger.coffee",
+    "README.md"
+  ],
+  "version": "0.4.1",
+  "homepage": "http://github.com/sweetpi/pimatic",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/sweetpi/pimatic-datalogger.git"
+  },
+  "dependencies": {
+    "tingodb": "~0.1.18"
+  },
+  "peerDependencies": {
+    "pimatic": "0.4.*"
+  },
+  "engines": {
+    "node": ">0.8.x",
+    "npm": ">1.1.x"
+  }
+}
