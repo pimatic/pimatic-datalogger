@@ -24,17 +24,24 @@ module.exports = (env) ->
       @db = new Db(@dbPath, {})
       @collection = @db.collection("logged_data.db")
 
-      @collection.find().toArray (err, docs) ->
-        console.log docs
+      # @collection.find().toArray (err, docs) ->
+      #   console.log docs
 
       @framework.on "after init", =>
+        
+        mobileFrontend = @framework.getPlugin 'mobile-frontend'
+        if mobileFrontend?
+          mobileFrontend.registerAssetFile 'js', "pimatic-datalogger/app/js/highstock.js"
+          mobileFrontend.registerAssetFile 'js', "pimatic-datalogger/app/main.coffee"
+        else
+          env.logger.warn "datalogger could not find mobile-frontend. No gui will be available"
 
         for sensor in @config.sensors
           do (sensor) =>
             device = @framework.getDeviceById sensor.id
             for sensorValue in sensor.sensorValues
               do (sensorValue) =>
-               device.on sensorValue, (value) =>
+                device.on sensorValue, (value) =>
                   console.log device.id, sensorValue, value
                   @collection.insert data =
                     date: new Date
