@@ -11,7 +11,7 @@ module.exports = (env) ->
 
   class DataLoggerPlugin extends env.plugins.Plugin
 
-    init: (app, @framework, @config) =>
+    init: (@app, @framework, @config) =>
       conf = convict require("./datalogger-config-shema")
       conf.load config 
       conf.validate()
@@ -24,8 +24,7 @@ module.exports = (env) ->
       @db = new Db(@dbPath, {})
       @collection = @db.collection("logged_data.db")
 
-      # @collection.find().toArray (err, docs) ->
-      #   console.log docs
+
 
       @framework.on "after init", =>
         
@@ -33,6 +32,7 @@ module.exports = (env) ->
         if mobileFrontend?
           mobileFrontend.registerAssetFile 'js', "pimatic-datalogger/app/js/highstock.js"
           mobileFrontend.registerAssetFile 'js', "pimatic-datalogger/app/main.coffee"
+          mobileFrontend.registerAssetFile 'html', "pimatic-datalogger/app/datalogger-page.jade"
         else
           env.logger.warn "datalogger could not find mobile-frontend. No gui will be available"
 
@@ -42,13 +42,39 @@ module.exports = (env) ->
             for sensorValue in sensor.sensorValues
               do (sensorValue) =>
                 device.on sensorValue, (value) =>
-                  console.log device.id, sensorValue, value
+                  #console.log device.id, sensorValue, value
                   @collection.insert data =
                     date: new Date
                     deviceId: device.id
                     sensorValueName: sensorValue
                     value: value
                   , w:1, (err) => if err then env.logger.error err
+
+      @app.get '/datalogger/data/:deviceId/:sensorValueName', (req, res, next) =>
+        deviceId = req.params.deviceId
+        device = @framework.getDeviceById deviceId
+        sensorValueName = req.params.sensorValueName
+        unless device?
+          res.send 406, message: "Could not finde device."
+          return
+        unless sensorValueName in device.getSensorValuesNames()
+          res.send 406, message: "Illega value for this device"
+          return
+
+        @collection.find(deviceId: deviceId, sensorValueName: sensorValueName).toArray (err, docs) ->
+        
+          res.send data =
+            title: 
+              text: "#{device.name}: #{sensorValueName}"
+            tooltip:
+              valueDecimals: 2
+            yAxis:
+              labels:
+                format: "{value}"
+            series: [
+              name: "Messwert"
+              data: ([doc.date.getTime(), doc.value] for doc in docs)
+            ]
 
 
   return new DataLoggerPlugin
