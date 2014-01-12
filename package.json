@@ -1,6 +1,6 @@
 {
   "name": "pimatic-datalogger",
-  "description": "allows you to log sensor and graph data like temperature and humidity.",
+  "description": "Allows you to log sensor and graph data like temperature and humidity.",
   "author": "Oliver Schneider <oliverschneider89+sweetpi@gmail.com> (http://sweetpi.de)",
   "main": "datalogger.coffee",
   "files": [
