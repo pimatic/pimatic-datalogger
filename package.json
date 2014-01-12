@@ -1,10 +1,12 @@
 {
   "name": "pimatic-datalogger",
-  "description": "datalogger",
+  "description": "allows you to log sensor and graph data like temperature and humidity.",
   "author": "Oliver Schneider <oliverschneider89+sweetpi@gmail.com> (http://sweetpi.de)",
   "main": "datalogger.coffee",
   "files": [
     "doc",
+    "app",
+    "datalogger-config-shema.coffee",
     "datalogger.coffee",
     "README.md"
   ],
