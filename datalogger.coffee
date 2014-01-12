@@ -177,7 +177,7 @@ module.exports = (env) ->
           sensorValues: sensorValues
       else for v in sensorValues
         unless (v in sensorConfig.sensorValues)
-         sensorConfig.sensorValues.push v
+          sensorConfig.sensorValues.push v
       @framework.saveConfig()
       return
 
