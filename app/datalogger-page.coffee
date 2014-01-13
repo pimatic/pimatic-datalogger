@@ -5,7 +5,7 @@
 
   $(document).on "pagecreate", '#index', (event) ->
 
-    $('#items').on "click", '.values', ->
+    $('#items').on "click", 'li.item.temperature-sensor .values', ->
       deviceId = $(this).parent('.item').data('item-id')
       jQuery.mobile.changePage '#datalogger'
 
@@ -13,7 +13,8 @@
   $(document).on "pagecreate", '#datalogger', (event) ->
     $("#logger-sensor-values").on "click", '.show ', (event) ->
       sensorValueName = $(this).parents(".sensor-value").data('sensor-value-name')
-      showGraph deviceId, sensorValueName
+      if deviceId?
+        showGraph deviceId, sensorValueName
       return
 
     $("#logger-sensor-values").on "change", ".logging-switch",(event, ui) ->
@@ -42,6 +43,10 @@
   
 
   $(document).on "pagebeforeshow", '#datalogger', (event) ->
+    unless deviceId?
+      jQuery.mobile.changePage '#index'
+      return false
+      
     $("#logger-sensor-values").find('li.sensor-value').remove()
     $.get "datalogger/info/#{deviceId}", (data) ->
       for name, logged of data.loggingSensorValues
