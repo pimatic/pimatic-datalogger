@@ -3,13 +3,11 @@ module.exports = (env) ->
   convict = env.require "convict"
   Q = env.require 'q'
   assert = env.require 'cassert'
+  _ = env.require 'lodash'
 
   path = require 'path'
   fs = require 'fs'
-
   Db = require("tingodb")().Db
-
-  helper = env.require('./lib/helper')
 
   class DataLoggerPlugin extends env.plugins.Plugin
 
@@ -131,6 +129,8 @@ module.exports = (env) ->
             ]
         return
 
+    # ##addLoggerForDevice()
+    # Add a sensor value listener for the given device and sensorValues
     addLoggerForDevice: (device, sensorValues) ->
       assert device? and device.id?
       assert Array.isArray sensorValues
@@ -166,33 +166,49 @@ module.exports = (env) ->
           delete @deviceListener[device.id]
       return
 
+    # ##getDeviceConfig()
+    # Get the config entry for the given if
     getDeviceConfig: (deviceId) ->
-      return helper.find @config.sensors, 'id', deviceId
+      assert deviceId?
+      return _(@config.sensors).find (s) => s.id is deviceId
 
+    # ##addDeviceToConfig()
+    # Add the given device id with the fiven sensor values to the config.
     addDeviceToConfig: (deviceId, sensorValues) ->
-      sensorConfig = @getDeviceConfig deviceId
-      unless sensorConfig?
+      assert deviceId?
+      assert Array.isArray sensorValues
+      # Get the config entry for the given id.
+      entry = @getDeviceConfig deviceId
+      # If the entry does not exist
+      unless entry?
+        # then create it.
         @config.sensors.push
           id: deviceId
           sensorValues: sensorValues
-      else for v in sensorValues
-        unless (v in sensorConfig.sensorValues)
-          sensorConfig.sensorValues.push v
+      else 
+        # Else just add the sensor values.
+        entry.sensorValues = _.union entry.sensorValues, sensorValues
+      # Save the config and return.
       @framework.saveConfig()
       return
 
+    # ##removeDeviceFromConfig()
+    # Removes the given sensor values from the sensor config entry with the id of deviceId
     removeDeviceFromConfig: (deviceId, sensorValuesToRemove) ->
-      sensorConfig = @getDeviceConfig deviceId
-      unless sensorConfig? then return
-      else 
-        newSensorValues = []
-        for v in sensorConfig.sensorValues
-          unless v in sensorValuesToRemove 
-            newSensorValues.push v
-        sensorConfig.sensorValues = newSensorValues
-        if sensorConfig.sensorValues.length is 0
-          helper.delete  @config.sensors, 'id', deviceId
-        @framework.saveConfig()
+      assert deviceId?
+      assert Array.isArray sensorValuesToRemove
+      # Get the sensor config entry.
+      entry = @getDeviceConfig deviceId
+      # If an entry was found
+      if entry?
+        # then remove the given sensor values.
+        entry.sensorValues = _.difference entry.sensorValues, sensorValuesToRemove
+        # If the entry has no sensor values anymore
+        if entry.sensorValues.length is 0
+          # then remove the entry completly from the config.
+          @config.sensors = _.filter @config.sensors, (s) => s.id isnt deviceId
+      # Save the config and return.
+      @framework.saveConfig()
       return
 
   return new DataLoggerPlugin
