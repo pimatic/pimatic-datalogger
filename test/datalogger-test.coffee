@@ -137,7 +137,78 @@ module.exports = (env) ->
         assert.deepEqual expectedEntry, @config.sensors[0]
         assert saveConfigCalled
 
-      describe 'addLoggerForDevice()',
+    describe 'addLoggerForDevice()', =>
 
-        it 'should add the listener', =>
+      it 'should add the first listener', =>
+        listener = null
 
+        testDevice =
+          id: "test1"
+          on: (event, l) =>
+            assert.equal "t1", event
+            assert typeof l is "function"
+            listener = l
+
+
+        plugin.addLoggerForDevice testDevice, ["t1"]
+
+        assert plugin.deviceListener["test1"]?
+        assert plugin.deviceListener["test1"].listener["t1"]?
+        assert.equal listener, plugin.deviceListener["test1"].listener["t1"]
+
+      it 'should add the second listener', =>
+        listener = null
+
+        testDevice =
+          id: "test1"
+          on: (event, l) =>
+            assert.equal "t2", event
+            assert typeof l is "function"
+            listener = l
+
+
+        plugin.addLoggerForDevice testDevice, ["t2"]
+
+        assert plugin.deviceListener["test1"]?
+        assert plugin.deviceListener["test1"].listener["t2"]?
+        assert.equal listener, plugin.deviceListener["test1"].listener["t2"]
+
+
+    describe 'removeLoggerForDevice()', =>
+      removeListenerCalled = false
+
+      beforeEach =>
+        removeListenerCalled = false
+
+
+      it 'should remove the first listener', =>
+
+        testDevice =
+          id: "test1"
+          removeListener: (event, l) =>
+            assert.equal "t1", event
+            assert typeof l is "function"
+            removeListenerCalled = true
+
+
+        plugin.removeLoggerForDevice testDevice, ["t1"]
+
+        assert plugin.deviceListener["test1"]?
+        assert not plugin.deviceListener["test1"].listener["t1"]?
+        assert plugin.deviceListener["test1"].listener["t2"]
+        assert removeListenerCalled
+
+      it 'should remove the second listener', =>
+
+        testDevice =
+          id: "test1"
+          removeListener: (event, l) =>
+            assert.equal "t2", event
+            assert typeof l is "function"
+            removeListenerCalled = true
+
+
+        plugin.removeLoggerForDevice testDevice, ["t2"]
+
+        assert not plugin.deviceListener["test1"]?
+        assert removeListenerCalled
