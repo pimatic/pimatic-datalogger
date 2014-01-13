@@ -9,6 +9,8 @@ module.exports = (env) ->
 
   Db = require("tingodb")().Db
 
+  helper = env.require('./lib/helper')
+
   class DataLoggerPlugin extends env.plugins.Plugin
 
     deviceListener: {}
@@ -165,15 +167,13 @@ module.exports = (env) ->
       return
 
     getDeviceConfig: (deviceId) ->
-      for sensor in @config.sensors
-        if sensor.id is deviceId then return sensor
-      return null
+      return helper.find @config.sensors, 'id', deviceId
 
     addDeviceToConfig: (deviceId, sensorValues) ->
       sensorConfig = @getDeviceConfig deviceId
       unless sensorConfig?
         @config.sensors.push
-          if: deviceId
+          id: deviceId
           sensorValues: sensorValues
       else for v in sensorValues
         unless (v in sensorConfig.sensorValues)
@@ -190,6 +190,8 @@ module.exports = (env) ->
           unless v in sensorValuesToRemove 
             newSensorValues.push v
         sensorConfig.sensorValues = newSensorValues
+        if sensorConfig.sensorValues.length is 0
+          helper.delete  @config.sensors, 'id', deviceId
         @framework.saveConfig()
       return
 
