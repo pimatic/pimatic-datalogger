@@ -7,7 +7,6 @@ module.exports = (env) ->
   fs = env.require 'fs.extra'
 
   path = require 'path'
-  Db = require("tingodb")().Db
 
   class DataLoggerPlugin extends env.plugins.Plugin
 
