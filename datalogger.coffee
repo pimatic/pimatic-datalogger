@@ -4,9 +4,9 @@ module.exports = (env) ->
   Q = env.require 'q'
   assert = env.require 'cassert'
   _ = env.require 'lodash'
+  fs = env.require 'fs.extra'
 
   path = require 'path'
-  fs = require 'fs'
   Db = require("tingodb")().Db
 
   class DataLoggerPlugin extends env.plugins.Plugin
@@ -19,13 +19,6 @@ module.exports = (env) ->
       conf.validate()
 
       unless @config.sensors? then @config.sensors = []
-
-      @dbPath = path.resolve framework.maindir, "../../db"
-      unless fs.existsSync @dbPath
-        fs.mkdirSync @dbPath
-      @db = new Db(@dbPath, {})
-      @collection = @db.collection("logged_data.db")
-
 
       @framework.on "device", (device) =>
         c =  @getDeviceConfig device.id
@@ -48,13 +41,35 @@ module.exports = (env) ->
             env.logger.warn "No device with id: #{sensor.id} found to log values."
         return
 
+      sendError = (req, error) =>
+        res.send 406, success: false, message: error.message
 
-      @app.get '/datalogger/info/:deviceId', (req, res, next) =>
+      sendSuccess = (res, message) =>
+        res.send success: true, message: message
+
+      getDeviceFromRequest: (req) =>
         deviceId = req.params.deviceId
+        if not deviceId? or deviceId is "undefined"
+          throw new Error "No deviceId given" 
         device = @framework.getDeviceById deviceId
         unless device?
-          res.send 406, message: "Could not find device."
-          return
+          throw new Error "Could not find device."
+        return device
+
+      getSensorValueNameFromRequest: (req, device) =>
+        sensorValueName = req.params.sensorValue
+        if not sensorValueName? or sensorValueName is "undefined"
+          throw new Error "No sensorValueName given." 
+        unless sensorValueName in device.getSensorValuesNames()
+          throw new Error "Illegal value for this device."
+        return sensorValueName
+
+      @app.get '/datalogger/info/:deviceId', (req, res, next) =>
+        try
+          device= getDeviceFromRequesst req
+        catch e
+          return sendError res, e
+
         c = @getDeviceConfig device.id
         loggedSensorValueNames = (if c? then c.sensorValues else [])
 
@@ -66,56 +81,38 @@ module.exports = (env) ->
             info.loggingSensorValues[sensorValue] = (sensorValue in loggedSensorValueNames)
 
         res.send info
-        return
 
       @app.get '/datalogger/add/:deviceId/:sensorValue', (req, res, next) =>
-        deviceId = req.params.deviceId
-        device = @framework.getDeviceById deviceId
-        sensorValueName = req.params.sensorValue
-        unless device?
-          res.send 406, success: false, message: "Could not find device."
-          return
-        unless sensorValueName in device.getSensorValuesNames()
-          res.send 406, success: false, message: "Illegal value for this device"
-          return
+        try
+          device = getDeviceFromRequesst req
+          sensorValueName = getSensorValueNameFromRequest req, device
+        catch e
+          return sendError res, e
 
-        @addDeviceToConfig deviceId, [sensorValueName]
+        @addDeviceToConfig device.id, [sensorValueName]
         @addLoggerForDevice device, [sensorValueName]
-        res.send success: true, message: "Added logging for #{sensorValueName}."
-        return
+        sendSuccess res, "Added logging for #{sensorValueName}."
 
       @app.get '/datalogger/remove/:deviceId/:sensorValue', (req, res, next) =>
-        deviceId = req.params.deviceId
-        device = @framework.getDeviceById deviceId
-        sensorValueName = req.params.sensorValue
-        unless device?
-          res.send 406, success: false, message: "Could not find device."
-          return
-        unless sensorValueName in device.getSensorValuesNames()
-          res.send 406, success: false, message: "Illegal value for this device"
-          return
+        try
+          device = getDeviceFromRequesst req
+          sensorValueName = getSensorValueNameFromRequest req, device
+        catch e
+          return sendError res, e
 
-        @removeDeviceFromConfig deviceId, [sensorValueName]
+        @removeDeviceFromConfig device.id, [sensorValueName]
         @removeLoggerForDevice device, [sensorValueName]
-        res.send success: true, message: "Removed logging for #{sensorValueName}."
-        return
+        sendSuccess res, "Removed logging for #{sensorValueName}."
 
       @app.get '/datalogger/data/:deviceId/:sensorValueName', (req, res, next) =>
-        deviceId = req.params.deviceId
-        device = @framework.getDeviceById deviceId
-        sensorValueName = req.params.sensorValueName
-        unless device?
-          res.send 406, success: false, message: "Could not find device."
-          return
-        unless sensorValueName in device.getSensorValuesNames()
-          res.send 406, success: false, message: "Illegal value for this device"
-          return
+        try
+          device = getDeviceFromRequesst req
+          sensorValueName = getSensorValueNameFromRequest req, device
+        catch e
+          return sendError res, e
 
-        @collection.find(
-          deviceId: deviceId, 
-          sensorValueName: sensorValueName
-        ).toArray (err, docs) ->
-          res.send data =
+        @loadData(device.id, sensorValueName).then( (data) =>
+          res.send
             title: 
               text: "#{device.name}: #{sensorValueName}"
             tooltip:
@@ -125,9 +122,52 @@ module.exports = (env) ->
                 format: "{value}"
             series: [
               name: "Messwert"
-              data: ([doc.date.getTime(), doc.value] for doc in docs)
+              data: data
             ]
-        return
+        ).done()
+
+    logData: (deviceId, sensorValue, value, date = new Date()) ->
+      assert deviceId?
+      assert sensorValue?
+      assert value?
+
+      file = @getPathOfLogFile deviceId, sensorValue, date
+      defer = Q.defer()
+      Q.nfcall(fs.exists, file, defer.resolve)
+      defer.promise.then( (exists) =>
+        unless exists
+          Q.nfcall fs.mkdirs, path.dirname(file)
+      ).then( =>
+        Q.nfcall fs.appendFile, file, "#{date.getTime()},#{value}"
+      )
+
+
+
+    getData: (deviceId, sensorValue, date = new Date()) ->
+      file = @getPathOfLogFile deviceId, sensorValue, date
+      defer = Q.defer()
+      Q.nfcall(fs.exists, file, defer.resolve)
+      defer.promise.then( (exists) =>
+        unless exists then return []
+        else Q.nfcall(fs.readFile, file).then( (csv) =>
+          csv = csv.toString()
+          if csv.length is 0 then return []
+          json = '[[' + csv.replace(/\r\n|\n|\r/gm, '],[') + ']]'
+          JSON.parse(json)
+        )
+      )
+
+    getPathOfLogFile: (deviceId, sensorValue, date) ->
+      assert deviceId?
+      assert sensorValue?
+      assert date instanceof Date
+      pad = (n) => if n < 10 then '0'+n else n
+      year = pad date.getFullYear()
+      month = pad(date.getMonth()+1)
+      day = pad date.getDate()
+      return path.resolve @framework.maindir, 
+        "../../datalogger/#{deviceId}/#{sensorValue}/#{year}/#{month}/#{day}.csv"
+
 
     # ##addLoggerForDevice()
     # Add a sensor value listener for the given device and sensorValues
@@ -137,16 +177,7 @@ module.exports = (env) ->
 
       for sensorValue in sensorValues
         do (sensorValue) =>
-          listener = (value) =>
-            #console.log device.id, sensorValue, value
-            @collection.insert(
-              date: new Date
-              deviceId: device.id
-              sensorValueName: sensorValue
-              value: value
-            , w:1, (err) => if err then env.logger.error err
-            )
- 
+          listener = (value) => @logData(device.Id, sensorValue, value).done()
           unless @deviceListener[device.id]?
             @deviceListener[device.id] =
               listener: {}

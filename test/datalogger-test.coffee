@@ -7,6 +7,7 @@ module.exports = (env) ->
   fs = env.require 'fs.extra'
   os = require 'os'
   events = require 'events'
+  path = require 'path'
 
   describe "datalogger", ->
 
@@ -18,6 +19,10 @@ module.exports = (env) ->
       @frameworkDummy.maindir = "#{os.tmpdir()}/pimatic-test/mode_modules/pimatic"
       @config = {}
       fs.mkdirsSync @frameworkDummy.maindir
+      @dataloggerDir = "#{os.tmpdir()}/pimatic-test/datalogger"
+
+    after =>
+      fs.rmrfSync @frameworkDummy.maindir
 
     describe '#init', =>
 
@@ -26,8 +31,6 @@ module.exports = (env) ->
 
         assert @config.sensors
         assert Array.isArray @config.sensors
-
-        assert fs.existsSync "#{os.tmpdir()}/pimatic-test/db"
 
     describe 'getDeviceConfig()', =>
 
@@ -136,6 +139,66 @@ module.exports = (env) ->
         assert.equal 1, @config.sensors.length
         assert.deepEqual expectedEntry, @config.sensors[0]
         assert saveConfigCalled
+
+    describe 'getPathOfLogFile()', =>
+
+      it 'should return the right path', =>
+        file = plugin.getPathOfLogFile 'test', 't1', new Date(2013, 1, 1, 7, 0, 0)
+        assert.equal file, "#{@dataloggerDir}/test/t1/2013/02/01.csv"
+
+
+    describe 'getData()', =>
+
+      it 'should return a empty array', (finish) =>
+        deviceId = 'test'
+        valueName = 't1'
+        date = new Date(2013, 1, 1, 7, 0, 0)
+
+        plugin.getData(deviceId, valueName, date).then( (data) =>
+          assert.deepEqual data, []
+          finish()
+        ).catch(finish)
+
+
+      it 'should return the data', (finish) =>
+        deviceId = 'test'
+        valueName = 't1'
+        date = new Date(2013, 1, 1, 7, 0, 0)
+
+        file = plugin.getPathOfLogFile deviceId, valueName, date
+        fs.mkdirsSync path.dirname(file)
+
+        fs.writeFileSync file, """
+          1359698400000,1.1
+          1359699000000,2.3
+        """
+
+        plugin.getData(deviceId, valueName, date).then( (data) =>
+          assert.deepEqual data, [[1359698400000,1.1], [1359699000000,2.3]]
+          finish()
+        ).catch(finish)
+
+      after =>
+        fs.rmrfSync @dataloggerDir
+
+    describe 'logData()', =>
+      
+      it 'should log the data to csv', (finish) =>
+        deviceId = 'test'
+        valueName = 't1'
+        date = new Date(2013, 1, 1, 7, 0, 0)
+
+        file = plugin.getPathOfLogFile deviceId, valueName, date
+
+        plugin.logData(deviceId, valueName, 4.2, date).then( =>
+          assert fs.existsSync file
+          data = fs.readFileSync file
+          assert.equal data.toString(), "1359698400000,4.2"
+          finish()
+        ).catch(finish)      
+
+      after =>
+        fs.rmrfSync @dataloggerDir
 
     describe 'addLoggerForDevice()', =>
 
