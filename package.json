@@ -17,7 +17,6 @@
     "url": "git://github.com/sweetpi/pimatic-datalogger.git"
   },
   "dependencies": {
-    "tingodb": "~0.1.18"
   },
   "peerDependencies": {
     "pimatic": "0.4.*"
