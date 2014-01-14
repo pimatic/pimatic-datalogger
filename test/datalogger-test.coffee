@@ -182,7 +182,7 @@ module.exports = (env) ->
         fs.rmrfSync @dataloggerDir
 
     describe 'logData()', =>
-      
+
       it 'should log the data to csv', (finish) =>
         deviceId = 'test'
         valueName = 't1'
@@ -275,3 +275,127 @@ module.exports = (env) ->
 
         assert not plugin.deviceListener["test1"]?
         assert removeListenerCalled
+
+    describe "get /datalogger/info/:deviceId", =>
+
+      it 'should get the info', (finish) =>
+
+        @config.sensors = []
+
+        getDeviceByIdCalled = false
+        @frameworkDummy.getDeviceById = (id) =>
+          assert id is 'testId'
+          getDeviceByIdCalled = true
+          return deviceDummy =
+            id: "test"
+            getSensorValuesNames: => ['t1', 't2']
+
+        expectedResult =
+          loggingSensorValues:
+            t1: false
+            t2: false
+
+        request(@app)
+          .get('/datalogger/info/testId')
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .expect(expectedResult)
+          .end( (err) =>
+            if err then return finish err
+            assert getDeviceByIdCalled
+            finish()
+          )
+
+    describe "get /datalogger/add/:deviceId/:sensorValue", =>
+
+      it 'should get the info', (finish) =>
+
+        @config.sensors = []
+
+        getDeviceByIdCalled = false
+        @frameworkDummy.getDeviceById = (id) =>
+          assert id is 'testId'
+          getDeviceByIdCalled = true
+          return deviceDummy =
+            id: "test"
+            on: =>
+            removeListener: =>
+            getSensorValuesNames: => ['t1', 't2']
+
+        request(@app)
+          .get('/datalogger/add/testId/t1')
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .end( (err) =>
+            if err then return finish err
+            assert @config.sensors.length is 1
+            finish()
+          )
+
+    describe "get /datalogger/remove/:deviceId/:sensorValue", =>
+
+      it 'should get the info', (finish) =>
+
+        @config.sensors = []
+
+        getDeviceByIdCalled = false
+        @frameworkDummy.getDeviceById = (id) =>
+          assert id is 'testId'
+          getDeviceByIdCalled = true
+          return deviceDummy =
+            id: "testId"
+            on: =>
+            removeListener: =>
+            getSensorValuesNames: => ['t1', 't2']
+
+        request(@app)
+          .get('/datalogger/remove/testId/t1')
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .end( (err) =>
+            if err then return finish err
+            assert @config.sensors.length is 0
+            finish()
+          )
+
+    describe "get /datalogger/data/:deviceId/:sensorValueName", =>
+
+      it 'should get the info', (finish) =>
+
+        @config.sensors = []
+
+        getDeviceByIdCalled = false
+        @frameworkDummy.getDeviceById = (id) =>
+          assert id is 'testId'
+          getDeviceByIdCalled = true
+          return deviceDummy =
+            name: "test"
+            id: "testId"
+            on: =>
+            removeListener: =>
+            getSensorValuesNames: => ['t1', 't2']
+
+        expectedResult =
+          title:
+            text: "test: t1"
+          tooltip:
+            valueDecimals: 2
+          yAxis:
+            labels:
+              format: "{value}"
+          series: [
+            name: "Messwert"
+            data: []
+          ]
+
+
+        request(@app)
+          .get('/datalogger/data/testId/t1')
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .expect(expectedResult)
+          .end( (err) =>
+            if err then return finish err
+            assert @config.sensors.length is 0
+            finish()
+          )

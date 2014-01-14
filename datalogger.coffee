@@ -41,13 +41,13 @@ module.exports = (env) ->
             env.logger.warn "No device with id: #{sensor.id} found to log values."
         return
 
-      sendError = (req, error) =>
+      sendError = (res, error) =>
         res.send 406, success: false, message: error.message
 
       sendSuccess = (res, message) =>
         res.send success: true, message: message
 
-      getDeviceFromRequest: (req) =>
+      getDeviceFromRequest = (req) =>
         deviceId = req.params.deviceId
         if not deviceId? or deviceId is "undefined"
           throw new Error "No deviceId given" 
@@ -56,7 +56,7 @@ module.exports = (env) ->
           throw new Error "Could not find device."
         return device
 
-      getSensorValueNameFromRequest: (req, device) =>
+      getSensorValueNameFromRequest = (req, device) =>
         sensorValueName = req.params.sensorValue
         if not sensorValueName? or sensorValueName is "undefined"
           throw new Error "No sensorValueName given." 
@@ -66,8 +66,9 @@ module.exports = (env) ->
 
       @app.get '/datalogger/info/:deviceId', (req, res, next) =>
         try
-          device= getDeviceFromRequesst req
+          device = getDeviceFromRequest req
         catch e
+          console.log e
           return sendError res, e
 
         c = @getDeviceConfig device.id
@@ -84,7 +85,7 @@ module.exports = (env) ->
 
       @app.get '/datalogger/add/:deviceId/:sensorValue', (req, res, next) =>
         try
-          device = getDeviceFromRequesst req
+          device = getDeviceFromRequest req
           sensorValueName = getSensorValueNameFromRequest req, device
         catch e
           return sendError res, e
@@ -95,7 +96,7 @@ module.exports = (env) ->
 
       @app.get '/datalogger/remove/:deviceId/:sensorValue', (req, res, next) =>
         try
-          device = getDeviceFromRequesst req
+          device = getDeviceFromRequest req
           sensorValueName = getSensorValueNameFromRequest req, device
         catch e
           return sendError res, e
@@ -104,14 +105,15 @@ module.exports = (env) ->
         @removeLoggerForDevice device, [sensorValueName]
         sendSuccess res, "Removed logging for #{sensorValueName}."
 
-      @app.get '/datalogger/data/:deviceId/:sensorValueName', (req, res, next) =>
+      @app.get '/datalogger/data/:deviceId/:sensorValue', (req, res, next) =>
         try
-          device = getDeviceFromRequesst req
+          device = getDeviceFromRequest req
           sensorValueName = getSensorValueNameFromRequest req, device
         catch e
+          console.log e
           return sendError res, e
 
-        @loadData(device.id, sensorValueName).then( (data) =>
+        @getData(device.id, sensorValueName).then( (data) =>
           res.send
             title: 
               text: "#{device.name}: #{sensorValueName}"
