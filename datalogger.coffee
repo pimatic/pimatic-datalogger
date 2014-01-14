@@ -178,7 +178,7 @@ module.exports = (env) ->
 
       for sensorValue in sensorValues
         do (sensorValue) =>
-          listener = (value) => @logData(device.Id, sensorValue, value).done()
+          listener = (value) => @logData(device.id, sensorValue, value).done()
           unless @deviceListener[device.id]?
             @deviceListener[device.id] =
               listener: {}
