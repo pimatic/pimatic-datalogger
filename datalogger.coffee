@@ -139,7 +139,7 @@ module.exports = (env) ->
         unless exists
           Q.nfcall fs.mkdirs, path.dirname(file)
       ).then( =>
-        Q.nfcall fs.appendFile, file, "#{date.getTime()},#{value}"
+        Q.nfcall fs.appendFile, file, "#{date.getTime()},#{value}\n"
       )
 
 
@@ -153,7 +153,11 @@ module.exports = (env) ->
         else Q.nfcall(fs.readFile, file).then( (csv) =>
           csv = csv.toString()
           if csv.length is 0 then return []
-          json = '[[' + csv.replace(/\r\n|\n|\r/gm, '],[') + ']]'
+          json = '[[' + 
+            csv.replace(/\r\n|\n|\r/gm, '],[') #replace new lines with `],[`
+            .replace(/,\[\]/g, '') # remove empty arrays: `[]`
+            .replace(/\],\[$/, '') + # remove last `],[`
+            ']]'
           JSON.parse(json)
         )
       )

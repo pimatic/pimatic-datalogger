@@ -171,6 +171,7 @@ module.exports = (env) ->
         fs.writeFileSync file, """
           1359698400000,1.1
           1359699000000,2.3
+
         """
 
         plugin.getData(deviceId, valueName, date).then( (data) =>
@@ -193,7 +194,7 @@ module.exports = (env) ->
         plugin.logData(deviceId, valueName, 4.2, date).then( =>
           assert fs.existsSync file
           data = fs.readFileSync file
-          assert.equal data.toString(), "1359698400000,4.2"
+          assert.equal data.toString(), "1359698400000,4.2\n"
           finish()
         ).catch(finish)      
 
