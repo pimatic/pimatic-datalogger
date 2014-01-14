@@ -48,7 +48,7 @@
       return false
       
     $("#logger-sensor-values").find('li.sensor-value').remove()
-    $.get "datalogger/info/#{deviceId}", (data) ->
+    $.get( "datalogger/info/#{deviceId}", (data) ->
       for name, logged of data.loggingSensorValues
         li = $ $('#datalogger-sensor-value-template').html()
         li.find('.sensor-value-name').text(name)
@@ -68,13 +68,18 @@
         if logged 
           showGraph deviceId, name
           return
-      return
+    ).done(ajaxShowToast).fail(ajaxAlertFail)
+    return
 
   showGraph = (deviceId, sensorValue) ->
-    $.get "datalogger/data/#{deviceId}/#{sensorValue}", (data) ->
+    $.ajax(
+      url: "datalogger/data/#{deviceId}/#{sensorValue}"
+      timeout: 30000 #ms
+    ).done( (data) ->
       chart = $("#chart").highcharts "StockChart", data
       chartInfo =
         deviceId: deviceId
         sensorValue: sensorValue
+    ).fail(ajaxAlertFail)
 
 )()
