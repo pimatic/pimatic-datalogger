@@ -21,12 +21,20 @@ module.exports = (env) ->
       fs.mkdirsSync @frameworkDummy.maindir
       @dataloggerDir = "#{os.tmpdir()}/pimatic-test/datalogger"
 
-      @testDevice = new env.devices.Sensor
-      @testDevice.id = "test1"
-      @testDevice.name = "test 1"
-      @testDevice.attributes =
-        t1: {}
-        t2: {}
+      @testDevice = new (
+        class DummyDevice extends env.devices.Sensor
+          id: "test1"
+          name: "test 1"
+      
+          attributes:
+            t1:
+              description: "a test value"
+              type: Number
+            t2:
+              description: "another test value"
+              type: Number
+      ) 
+
 
 
 
