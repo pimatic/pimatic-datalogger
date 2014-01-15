@@ -21,7 +21,7 @@ module.exports = (env) ->
 
       @framework.on "device", (device) =>
         c =  @getDeviceConfig device.id
-        if c? then @addLoggerForDevice device, c.sensorValues
+        if c? then @addLoggerForDevice device, c.properties
         return
 
       @framework.on "after init", =>
@@ -55,67 +55,65 @@ module.exports = (env) ->
           throw new Error "Could not find device."
         return device
 
-      getSensorValueNameFromRequest = (req, device) =>
-        sensorValueName = req.params.sensorValue
-        if not sensorValueName? or sensorValueName is "undefined"
-          throw new Error "No sensorValueName given." 
-        unless sensorValueName in device.getSensorValuesNames()
+      getPropertyFromRequest = (req, device) =>
+        property = req.params.property
+        if not property? or property is "undefined"
+          throw new Error "No property name given." 
+        unless device.hasProperty property
           throw new Error "Illegal value for this device."
-        return sensorValueName
+        return property
 
       @app.get '/datalogger/info/:deviceId', (req, res, next) =>
         try
           device = getDeviceFromRequest req
         catch e
-          console.log e
           return sendError res, e
 
         c = @getDeviceConfig device.id
-        loggedSensorValueNames = (if c? then c.sensorValues else [])
+        loggedProperties = (if c? then c.properties else [])
 
         info =
-         loggingSensorValues: {}
+         loggingProperties: {}
 
-        if device.getSensorValuesNames?
-          for sensorValue in device.getSensorValuesNames()
-            info.loggingSensorValues[sensorValue] = (sensorValue in loggedSensorValueNames)
+        for property of device.properties
+          info.loggingProperties[property] = (property in loggedProperties)
 
         res.send info
 
-      @app.get '/datalogger/add/:deviceId/:sensorValue', (req, res, next) =>
+      @app.get '/datalogger/add/:deviceId/:property', (req, res, next) =>
         try
           device = getDeviceFromRequest req
-          sensorValueName = getSensorValueNameFromRequest req, device
+          property = getPropertyFromRequest req, device
         catch e
           return sendError res, e
 
-        @addDeviceToConfig device.id, [sensorValueName]
-        @addLoggerForDevice device, [sensorValueName]
-        sendSuccess res, "Added logging for #{sensorValueName}."
+        @addDeviceToConfig device.id, [property]
+        @addLoggerForDevice device, [property]
+        sendSuccess res, "Added logging for #{property}."
 
-      @app.get '/datalogger/remove/:deviceId/:sensorValue', (req, res, next) =>
+      @app.get '/datalogger/remove/:deviceId/:property', (req, res, next) =>
         try
           device = getDeviceFromRequest req
-          sensorValueName = getSensorValueNameFromRequest req, device
+          property = getPropertyFromRequest req, device
         catch e
           return sendError res, e
 
-        @removeDeviceFromConfig device.id, [sensorValueName]
-        @removeLoggerForDevice device, [sensorValueName]
-        sendSuccess res, "Removed logging for #{sensorValueName}."
+        @removeDeviceFromConfig device.id, [property]
+        @removeLoggerForDevice device, [property]
+        sendSuccess res, "Removed logging for #{property}."
 
-      @app.get '/datalogger/data/:deviceId/:sensorValue', (req, res, next) =>
+      @app.get '/datalogger/data/:deviceId/:property', (req, res, next) =>
         try
           device = getDeviceFromRequest req
-          sensorValueName = getSensorValueNameFromRequest req, device
+          property = getPropertyFromRequest req, device
         catch e
           console.log e
           return sendError res, e
 
-        @getData(device.id, sensorValueName).then( (data) =>
+        @getData(device.id, property).then( (data) =>
           res.send
             title: 
-              text: "#{device.name}: #{sensorValueName}"
+              text: "#{device.name}: #{property}"
             tooltip:
               valueDecimals: 2
             yAxis:
@@ -127,12 +125,12 @@ module.exports = (env) ->
             ]
         ).done()
 
-    logData: (deviceId, sensorValue, value, date = new Date()) ->
+    logData: (deviceId, property, value, date = new Date()) ->
       assert deviceId?
-      assert sensorValue?
+      assert property?
       assert value?
 
-      file = @getPathOfLogFile deviceId, sensorValue, date
+      file = @getPathOfLogFile deviceId, property, date
       defer = Q.defer()
       Q.nfcall(fs.exists, file, defer.resolve)
       defer.promise.then( (exists) =>
@@ -144,8 +142,8 @@ module.exports = (env) ->
 
 
 
-    getData: (deviceId, sensorValue, date = new Date()) ->
-      file = @getPathOfLogFile deviceId, sensorValue, date
+    getData: (deviceId, property, date = new Date()) ->
+      file = @getPathOfLogFile deviceId, property, date
       defer = Q.defer()
       Q.nfcall(fs.exists, file, defer.resolve)
       defer.promise.then( (exists) =>
@@ -162,42 +160,42 @@ module.exports = (env) ->
         )
       )
 
-    getPathOfLogFile: (deviceId, sensorValue, date) ->
+    getPathOfLogFile: (deviceId, property, date) ->
       assert deviceId?
-      assert sensorValue?
+      assert property?
       assert date instanceof Date
       pad = (n) => if n < 10 then '0'+n else n
       year = pad date.getFullYear()
       month = pad(date.getMonth()+1)
       day = pad date.getDate()
       return path.resolve @framework.maindir, 
-        "../../datalogger/#{deviceId}/#{sensorValue}/#{year}/#{month}/#{day}.csv"
+        "../../datalogger/#{deviceId}/#{property}/#{year}/#{month}/#{day}.csv"
 
 
     # ##addLoggerForDevice()
-    # Add a sensor value listener for the given device and sensorValues
-    addLoggerForDevice: (device, sensorValues) ->
+    # Add a sensor value listener for the given device and properties
+    addLoggerForDevice: (device, properties) ->
       assert device? and device.id?
-      assert Array.isArray sensorValues
+      assert Array.isArray properties
 
-      for sensorValue in sensorValues
-        do (sensorValue) =>
-          listener = (value) => @logData(device.id, sensorValue, value).done()
+      for property in properties
+        do (property) =>
+          listener = (value) => @logData(device.id, property, value).done()
           unless @deviceListener[device.id]?
             @deviceListener[device.id] =
               listener: {}
-          unless @deviceListener[device.id].listener[sensorValue]?
-            @deviceListener[device.id].listener[sensorValue] = listener  
-            device.on sensorValue, listener
+          unless @deviceListener[device.id].listener[property]?
+            @deviceListener[device.id].listener[property] = listener  
+            device.on property, listener
       return
 
-    removeLoggerForDevice: (device, sensorValues) ->
+    removeLoggerForDevice: (device, properties) ->
       if @deviceListener[device.id]?
-        for sensorValue in sensorValues
-          do (sensorValue) =>
-            listener = @deviceListener[device.id].listener[sensorValue]
-            device.removeListener sensorValue, listener
-            delete @deviceListener[device.id].listener[sensorValue]
+        for property in properties
+          do (property) =>
+            listener = @deviceListener[device.id].listener[property]
+            device.removeListener property, listener
+            delete @deviceListener[device.id].listener[property]
         if (l for l of @deviceListener[device.id].listener).length is 0
           delete @deviceListener[device.id]
       return
@@ -210,9 +208,9 @@ module.exports = (env) ->
 
     # ##addDeviceToConfig()
     # Add the given device id with the fiven sensor values to the config.
-    addDeviceToConfig: (deviceId, sensorValues) ->
+    addDeviceToConfig: (deviceId, properties) ->
       assert deviceId?
-      assert Array.isArray sensorValues
+      assert Array.isArray properties
       # Get the config entry for the given id.
       entry = @getDeviceConfig deviceId
       # If the entry does not exist
@@ -220,27 +218,27 @@ module.exports = (env) ->
         # then create it.
         @config.sensors.push
           id: deviceId
-          sensorValues: sensorValues
+          properties: properties
       else 
         # Else just add the sensor values.
-        entry.sensorValues = _.union entry.sensorValues, sensorValues
+        entry.properties = _.union entry.properties, properties
       # Save the config and return.
       @framework.saveConfig()
       return
 
     # ##removeDeviceFromConfig()
     # Removes the given sensor values from the sensor config entry with the id of deviceId
-    removeDeviceFromConfig: (deviceId, sensorValuesToRemove) ->
+    removeDeviceFromConfig: (deviceId, propertiesToRemove) ->
       assert deviceId?
-      assert Array.isArray sensorValuesToRemove
+      assert Array.isArray propertiesToRemove
       # Get the sensor config entry.
       entry = @getDeviceConfig deviceId
       # If an entry was found
       if entry?
         # then remove the given sensor values.
-        entry.sensorValues = _.difference entry.sensorValues, sensorValuesToRemove
+        entry.properties = _.difference entry.properties, propertiesToRemove
         # If the entry has no sensor values anymore
-        if entry.sensorValues.length is 0
+        if entry.properties.length is 0
           # then remove the entry completly from the config.
           @config.sensors = _.filter @config.sensors, (s) => s.id isnt deviceId
       # Save the config and return.

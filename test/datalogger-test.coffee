@@ -21,6 +21,15 @@ module.exports = (env) ->
       fs.mkdirsSync @frameworkDummy.maindir
       @dataloggerDir = "#{os.tmpdir()}/pimatic-test/datalogger"
 
+      @testDevice = new env.devices.Sensor
+      @testDevice.id = "test1"
+      @testDevice.name = "test 1"
+      @testDevice.properties =
+        t1: {}
+        t2: {}
+
+
+
     after =>
       fs.rmrfSync @frameworkDummy.maindir
 
@@ -38,7 +47,7 @@ module.exports = (env) ->
         @config.sensors = [
           {
             id: "test"
-            sensorValues: ["t1", "t2"]
+            properties: ["t1", "t2"]
           }
         ]
 
@@ -50,7 +59,7 @@ module.exports = (env) ->
         @config.sensors = [
           {
             id: "test"
-            sensorValues: ["t1", "t2"]
+            properties: ["t1", "t2"]
           }
         ]
 
@@ -71,7 +80,7 @@ module.exports = (env) ->
         @config.sensors = []
         expectedEntry = 
           id: "test"
-          sensorValues: ["t1", "t2"]
+          properties: ["t1", "t2"]
 
         plugin.addDeviceToConfig "test", ["t1", "t2"]
         assert.deepEqual expectedEntry, @config.sensors[0]
@@ -81,7 +90,7 @@ module.exports = (env) ->
 
         expectedEntry = 
           id: "test"
-          sensorValues: ["t1", "t2", "t3"]
+          properties: ["t1", "t2", "t3"]
 
         plugin.addDeviceToConfig "test", ["t3"]
        
@@ -92,7 +101,7 @@ module.exports = (env) ->
 
         expectedEntry = 
           id: "test2"
-          sensorValues: ["t3"]
+          properties: ["t3"]
 
         plugin.addDeviceToConfig "test2", ["t3"]
        
@@ -113,7 +122,7 @@ module.exports = (env) ->
         @config.sensors = [
           {
             id: "test"
-            sensorValues: ["t1", "t2"]
+            properties: ["t1", "t2"]
           }
         ]
 
@@ -126,13 +135,13 @@ module.exports = (env) ->
         @config.sensors = [
           {
             id: "test"
-            sensorValues: ["t1", "t2"]
+            properties: ["t1", "t2"]
           }
         ]
 
         expectedEntry = 
           id: "test"
-          sensorValues: ["t1"]
+          properties: ["t1"]
 
 
         plugin.removeDeviceFromConfig "test", ["t2"]
@@ -151,10 +160,10 @@ module.exports = (env) ->
 
       it 'should return a empty array', (finish) =>
         deviceId = 'test'
-        valueName = 't1'
+        propertyName = 't1'
         date = new Date(2013, 1, 1, 7, 0, 0)
 
-        plugin.getData(deviceId, valueName, date).then( (data) =>
+        plugin.getData(deviceId, propertyName, date).then( (data) =>
           assert.deepEqual data, []
           finish()
         ).catch(finish)
@@ -162,10 +171,10 @@ module.exports = (env) ->
 
       it 'should return the data', (finish) =>
         deviceId = 'test'
-        valueName = 't1'
+        propertyName = 't1'
         date = new Date(2013, 1, 1, 7, 0, 0)
 
-        file = plugin.getPathOfLogFile deviceId, valueName, date
+        file = plugin.getPathOfLogFile deviceId, propertyName, date
         fs.mkdirsSync path.dirname(file)
 
         fs.writeFileSync file, """
@@ -174,7 +183,7 @@ module.exports = (env) ->
 
         """
 
-        plugin.getData(deviceId, valueName, date).then( (data) =>
+        plugin.getData(deviceId, propertyName, date).then( (data) =>
           assert.deepEqual data, [[1359698400000,1.1], [1359699000000,2.3]]
           finish()
         ).catch(finish)
@@ -186,12 +195,12 @@ module.exports = (env) ->
 
       it 'should log the data to csv', (finish) =>
         deviceId = 'test'
-        valueName = 't1'
+        propertyName = 't1'
         date = new Date(2013, 1, 1, 7, 0, 0)
 
-        file = plugin.getPathOfLogFile deviceId, valueName, date
+        file = plugin.getPathOfLogFile deviceId, propertyName, date
 
-        plugin.logData(deviceId, valueName, 4.2, date).then( =>
+        plugin.logData(deviceId, propertyName, 4.2, date).then( =>
           assert fs.existsSync file
           data = fs.readFileSync file
           assert.equal data.toString(), "1359698400000,4.2\n"
@@ -206,15 +215,13 @@ module.exports = (env) ->
       it 'should add the first listener', =>
         listener = null
 
-        testDevice =
-          id: "test1"
-          on: (event, l) =>
-            assert.equal "t1", event
-            assert typeof l is "function"
-            listener = l
+        @testDevice.on = (event, l) =>
+          assert.equal "t1", event
+          assert typeof l is "function"
+          listener = l
 
 
-        plugin.addLoggerForDevice testDevice, ["t1"]
+        plugin.addLoggerForDevice @testDevice, ["t1"]
 
         assert plugin.deviceListener["test1"]?
         assert plugin.deviceListener["test1"].listener["t1"]?
@@ -223,15 +230,13 @@ module.exports = (env) ->
       it 'should add the second listener', =>
         listener = null
 
-        testDevice =
-          id: "test1"
-          on: (event, l) =>
-            assert.equal "t2", event
-            assert typeof l is "function"
-            listener = l
+        @testDevice.on = (event, l) =>
+          assert.equal "t2", event
+          assert typeof l is "function"
+          listener = l
 
 
-        plugin.addLoggerForDevice testDevice, ["t2"]
+        plugin.addLoggerForDevice @testDevice, ["t2"]
 
         assert plugin.deviceListener["test1"]?
         assert plugin.deviceListener["test1"].listener["t2"]?
@@ -247,15 +252,13 @@ module.exports = (env) ->
 
       it 'should remove the first listener', =>
 
-        testDevice =
-          id: "test1"
-          removeListener: (event, l) =>
-            assert.equal "t1", event
-            assert typeof l is "function"
-            removeListenerCalled = true
+        @testDevice.removeListener = (event, l) =>
+          assert.equal "t1", event
+          assert typeof l is "function"
+          removeListenerCalled = true
 
 
-        plugin.removeLoggerForDevice testDevice, ["t1"]
+        plugin.removeLoggerForDevice @testDevice, ["t1"]
 
         assert plugin.deviceListener["test1"]?
         assert not plugin.deviceListener["test1"].listener["t1"]?
@@ -264,15 +267,13 @@ module.exports = (env) ->
 
       it 'should remove the second listener', =>
 
-        testDevice =
-          id: "test1"
-          removeListener: (event, l) =>
-            assert.equal "t2", event
-            assert typeof l is "function"
-            removeListenerCalled = true
+        @testDevice.removeListener = (event, l) =>
+          assert.equal "t2", event
+          assert typeof l is "function"
+          removeListenerCalled = true
 
 
-        plugin.removeLoggerForDevice testDevice, ["t2"]
+        plugin.removeLoggerForDevice @testDevice, ["t2"]
 
         assert not plugin.deviceListener["test1"]?
         assert removeListenerCalled
@@ -287,12 +288,10 @@ module.exports = (env) ->
         @frameworkDummy.getDeviceById = (id) =>
           assert id is 'testId'
           getDeviceByIdCalled = true
-          return deviceDummy =
-            id: "test"
-            getSensorValuesNames: => ['t1', 't2']
+          return @testDevice
 
         expectedResult =
-          loggingSensorValues:
+          loggingProperties:
             t1: false
             t2: false
 
@@ -313,15 +312,14 @@ module.exports = (env) ->
 
         @config.sensors = []
 
+        @testDevice.on = =>
+        @testDevice.removeListener = =>
+
         getDeviceByIdCalled = false
         @frameworkDummy.getDeviceById = (id) =>
           assert id is 'testId'
           getDeviceByIdCalled = true
-          return deviceDummy =
-            id: "test"
-            on: =>
-            removeListener: =>
-            getSensorValuesNames: => ['t1', 't2']
+          return @testDevice
 
         request(@app)
           .get('/datalogger/add/testId/t1')
@@ -343,11 +341,7 @@ module.exports = (env) ->
         @frameworkDummy.getDeviceById = (id) =>
           assert id is 'testId'
           getDeviceByIdCalled = true
-          return deviceDummy =
-            id: "testId"
-            on: =>
-            removeListener: =>
-            getSensorValuesNames: => ['t1', 't2']
+          return @testDevice
 
         request(@app)
           .get('/datalogger/remove/testId/t1')
@@ -359,7 +353,7 @@ module.exports = (env) ->
             finish()
           )
 
-    describe "get /datalogger/data/:deviceId/:sensorValueName", =>
+    describe "get /datalogger/data/:deviceId/:sensorpropertyName", =>
 
       it 'should get the info', (finish) =>
 
@@ -369,16 +363,11 @@ module.exports = (env) ->
         @frameworkDummy.getDeviceById = (id) =>
           assert id is 'testId'
           getDeviceByIdCalled = true
-          return deviceDummy =
-            name: "test"
-            id: "testId"
-            on: =>
-            removeListener: =>
-            getSensorValuesNames: => ['t1', 't2']
+          return @testDevice
 
         expectedResult =
           title:
-            text: "test: t1"
+            text: "test 1: t1"
           tooltip:
             valueDecimals: 2
           yAxis:
