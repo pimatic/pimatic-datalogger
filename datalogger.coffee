@@ -17,7 +17,7 @@ module.exports = (env) ->
       conf.load config 
       conf.validate()
 
-      unless @config.sensors? then @config.sensors = []
+      unless @config.devices? then @config.devices = []
 
       @framework.on "device", (device) =>
         c =  @getDeviceConfig device.id
@@ -35,7 +35,7 @@ module.exports = (env) ->
         else
           env.logger.warn "datalogger could not find mobile-frontend. No gui will be available"
 
-        for sensor in @config.sensors 
+        for sensor in @config.devices 
           unless @deviceListener[sensor.id]?
             env.logger.warn "No device with id: #{sensor.id} found to log values."
         return
@@ -204,7 +204,7 @@ module.exports = (env) ->
     # Get the config entry for the given if
     getDeviceConfig: (deviceId) ->
       assert deviceId?
-      return _(@config.sensors).find (s) => s.id is deviceId
+      return _(@config.devices).find (s) => s.id is deviceId
 
     # ##addDeviceToConfig()
     # Add the given device id with the fiven sensor values to the config.
@@ -216,7 +216,7 @@ module.exports = (env) ->
       # If the entry does not exist
       unless entry?
         # then create it.
-        @config.sensors.push
+        @config.devices.push
           id: deviceId
           attributes: attributes
       else 
@@ -240,7 +240,7 @@ module.exports = (env) ->
         # If the entry has no sensor values anymore
         if entry.attributes.length is 0
           # then remove the entry completly from the config.
-          @config.sensors = _.filter @config.sensors, (s) => s.id isnt deviceId
+          @config.devices = _.filter @config.devices, (s) => s.id isnt deviceId
       # Save the config and return.
       @framework.saveConfig()
       return

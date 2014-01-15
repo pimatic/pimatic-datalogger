@@ -38,13 +38,13 @@ module.exports = (env) ->
       it 'should init', =>
         plugin.init @app, @frameworkDummy, @config
 
-        assert @config.sensors
-        assert Array.isArray @config.sensors
+        assert @config.devices
+        assert Array.isArray @config.devices
 
     describe 'getDeviceConfig()', =>
 
       it 'should get the entry', =>
-        @config.sensors = [
+        @config.devices = [
           {
             id: "test"
             attributes: ["t1", "t2"]
@@ -53,10 +53,10 @@ module.exports = (env) ->
 
         entry = plugin.getDeviceConfig("test")
         assert entry?
-        assert.deepEqual entry, @config.sensors[0]
+        assert.deepEqual entry, @config.devices[0]
 
       it 'should not find the entry', =>
-        @config.sensors = [
+        @config.devices = [
           {
             id: "test"
             attributes: ["t1", "t2"]
@@ -77,13 +77,13 @@ module.exports = (env) ->
 
       it 'should add the first entry', =>
         
-        @config.sensors = []
+        @config.devices = []
         expectedEntry = 
           id: "test"
           attributes: ["t1", "t2"]
 
         plugin.addDeviceToConfig "test", ["t1", "t2"]
-        assert.deepEqual expectedEntry, @config.sensors[0]
+        assert.deepEqual expectedEntry, @config.devices[0]
         assert saveConfigCalled
 
       it 'should add the sensor value', =>
@@ -94,7 +94,7 @@ module.exports = (env) ->
 
         plugin.addDeviceToConfig "test", ["t3"]
        
-        assert.deepEqual expectedEntry, @config.sensors[0]
+        assert.deepEqual expectedEntry, @config.devices[0]
         assert saveConfigCalled
 
       it 'should add the second sensor', =>
@@ -105,8 +105,8 @@ module.exports = (env) ->
 
         plugin.addDeviceToConfig "test2", ["t3"]
        
-        assert.equal 2, @config.sensors.length
-        assert.deepEqual expectedEntry, @config.sensors[1]
+        assert.equal 2, @config.devices.length
+        assert.deepEqual expectedEntry, @config.devices[1]
         assert saveConfigCalled
 
     describe 'removeDeviceFromConfig()', =>
@@ -119,7 +119,7 @@ module.exports = (env) ->
 
       it 'should remove the entry', =>
 
-        @config.sensors = [
+        @config.devices = [
           {
             id: "test"
             attributes: ["t1", "t2"]
@@ -127,12 +127,12 @@ module.exports = (env) ->
         ]
 
         plugin.removeDeviceFromConfig "test", ["t1", "t2"]
-        assert.equal 0, @config.sensors.length
+        assert.equal 0, @config.devices.length
         assert saveConfigCalled
 
       it 'should remove a sensorValue', =>
 
-        @config.sensors = [
+        @config.devices = [
           {
             id: "test"
             attributes: ["t1", "t2"]
@@ -145,8 +145,8 @@ module.exports = (env) ->
 
 
         plugin.removeDeviceFromConfig "test", ["t2"]
-        assert.equal 1, @config.sensors.length
-        assert.deepEqual expectedEntry, @config.sensors[0]
+        assert.equal 1, @config.devices.length
+        assert.deepEqual expectedEntry, @config.devices[0]
         assert saveConfigCalled
 
     describe 'getPathOfLogFile()', =>
@@ -282,7 +282,7 @@ module.exports = (env) ->
 
       it 'should get the info', (finish) =>
 
-        @config.sensors = []
+        @config.devices = []
 
         getDeviceByIdCalled = false
         @frameworkDummy.getDeviceById = (id) =>
@@ -310,7 +310,7 @@ module.exports = (env) ->
 
       it 'should get the info', (finish) =>
 
-        @config.sensors = []
+        @config.devices = []
 
         @testDevice.on = =>
         @testDevice.removeListener = =>
@@ -327,7 +327,7 @@ module.exports = (env) ->
           .expect(200)
           .end( (err) =>
             if err then return finish err
-            assert @config.sensors.length is 1
+            assert @config.devices.length is 1
             finish()
           )
 
@@ -335,7 +335,7 @@ module.exports = (env) ->
 
       it 'should get the info', (finish) =>
 
-        @config.sensors = []
+        @config.devices = []
 
         getDeviceByIdCalled = false
         @frameworkDummy.getDeviceById = (id) =>
@@ -349,7 +349,7 @@ module.exports = (env) ->
           .expect(200)
           .end( (err) =>
             if err then return finish err
-            assert @config.sensors.length is 0
+            assert @config.devices.length is 0
             finish()
           )
 
@@ -357,7 +357,7 @@ module.exports = (env) ->
 
       it 'should get the info', (finish) =>
 
-        @config.sensors = []
+        @config.devices = []
 
         getDeviceByIdCalled = false
         @frameworkDummy.getDeviceById = (id) =>
@@ -386,6 +386,6 @@ module.exports = (env) ->
           .expect(expectedResult)
           .end( (err) =>
             if err then return finish err
-            assert @config.sensors.length is 0
+            assert @config.devices.length is 0
             finish()
           )
