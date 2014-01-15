@@ -24,7 +24,7 @@ module.exports = (env) ->
       @testDevice = new env.devices.Sensor
       @testDevice.id = "test1"
       @testDevice.name = "test 1"
-      @testDevice.properties =
+      @testDevice.attributes =
         t1: {}
         t2: {}
 
@@ -47,7 +47,7 @@ module.exports = (env) ->
         @config.sensors = [
           {
             id: "test"
-            properties: ["t1", "t2"]
+            attributes: ["t1", "t2"]
           }
         ]
 
@@ -59,7 +59,7 @@ module.exports = (env) ->
         @config.sensors = [
           {
             id: "test"
-            properties: ["t1", "t2"]
+            attributes: ["t1", "t2"]
           }
         ]
 
@@ -80,7 +80,7 @@ module.exports = (env) ->
         @config.sensors = []
         expectedEntry = 
           id: "test"
-          properties: ["t1", "t2"]
+          attributes: ["t1", "t2"]
 
         plugin.addDeviceToConfig "test", ["t1", "t2"]
         assert.deepEqual expectedEntry, @config.sensors[0]
@@ -90,7 +90,7 @@ module.exports = (env) ->
 
         expectedEntry = 
           id: "test"
-          properties: ["t1", "t2", "t3"]
+          attributes: ["t1", "t2", "t3"]
 
         plugin.addDeviceToConfig "test", ["t3"]
        
@@ -101,7 +101,7 @@ module.exports = (env) ->
 
         expectedEntry = 
           id: "test2"
-          properties: ["t3"]
+          attributes: ["t3"]
 
         plugin.addDeviceToConfig "test2", ["t3"]
        
@@ -122,7 +122,7 @@ module.exports = (env) ->
         @config.sensors = [
           {
             id: "test"
-            properties: ["t1", "t2"]
+            attributes: ["t1", "t2"]
           }
         ]
 
@@ -135,13 +135,13 @@ module.exports = (env) ->
         @config.sensors = [
           {
             id: "test"
-            properties: ["t1", "t2"]
+            attributes: ["t1", "t2"]
           }
         ]
 
         expectedEntry = 
           id: "test"
-          properties: ["t1"]
+          attributes: ["t1"]
 
 
         plugin.removeDeviceFromConfig "test", ["t2"]
@@ -160,10 +160,10 @@ module.exports = (env) ->
 
       it 'should return a empty array', (finish) =>
         deviceId = 'test'
-        propertyName = 't1'
+        attributeName = 't1'
         date = new Date(2013, 1, 1, 7, 0, 0)
 
-        plugin.getData(deviceId, propertyName, date).then( (data) =>
+        plugin.getData(deviceId, attributeName, date).then( (data) =>
           assert.deepEqual data, []
           finish()
         ).catch(finish)
@@ -171,10 +171,10 @@ module.exports = (env) ->
 
       it 'should return the data', (finish) =>
         deviceId = 'test'
-        propertyName = 't1'
+        attributeName = 't1'
         date = new Date(2013, 1, 1, 7, 0, 0)
 
-        file = plugin.getPathOfLogFile deviceId, propertyName, date
+        file = plugin.getPathOfLogFile deviceId, attributeName, date
         fs.mkdirsSync path.dirname(file)
 
         fs.writeFileSync file, """
@@ -183,7 +183,7 @@ module.exports = (env) ->
 
         """
 
-        plugin.getData(deviceId, propertyName, date).then( (data) =>
+        plugin.getData(deviceId, attributeName, date).then( (data) =>
           assert.deepEqual data, [[1359698400000,1.1], [1359699000000,2.3]]
           finish()
         ).catch(finish)
@@ -195,12 +195,12 @@ module.exports = (env) ->
 
       it 'should log the data to csv', (finish) =>
         deviceId = 'test'
-        propertyName = 't1'
+        attributeName = 't1'
         date = new Date(2013, 1, 1, 7, 0, 0)
 
-        file = plugin.getPathOfLogFile deviceId, propertyName, date
+        file = plugin.getPathOfLogFile deviceId, attributeName, date
 
-        plugin.logData(deviceId, propertyName, 4.2, date).then( =>
+        plugin.logData(deviceId, attributeName, 4.2, date).then( =>
           assert fs.existsSync file
           data = fs.readFileSync file
           assert.equal data.toString(), "1359698400000,4.2\n"
@@ -291,7 +291,7 @@ module.exports = (env) ->
           return @testDevice
 
         expectedResult =
-          loggingProperties:
+          loggingAttributes:
             t1: false
             t2: false
 
@@ -353,7 +353,7 @@ module.exports = (env) ->
             finish()
           )
 
-    describe "get /datalogger/data/:deviceId/:sensorpropertyName", =>
+    describe "get /datalogger/data/:deviceId/:sensorattributeName", =>
 
       it 'should get the info', (finish) =>
 
