@@ -1,7 +1,7 @@
 div#datalogger(data-role='page')
-  script#datalogger-sensor-value-template(type='text/template')
-    li.sensor-value(data-role="fieldcontain")
-      span.sensor-value-name
+  script#datalogger-attr-value-template(type='text/template')
+    li.attr-value(data-role="fieldcontain")
+      span.attr-value-name
       div.controls(data-role="controlgroup")
         label=__('Log data: ')
         select.logging-switch(data-role="slider")
@@ -12,6 +12,6 @@ div#datalogger(data-role='page')
     a(href='#index', data-role='button', data-icon='arrow-l', data-iconpos='left', data-inline='true')=__('Back')
     h3=__('Sensor value log')
   div(data-role='content')
-    ul#logger-sensor-values(data-role='listview', data-inset='true')
+    ul#logger-attr-values(data-role='listview', data-inset='true')
       li(data-role='list-divider')=__('Sensor values')
     div#chart
