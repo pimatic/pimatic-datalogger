@@ -374,18 +374,7 @@ module.exports = (env) ->
           return @testDevice
 
         expectedResult =
-          title:
-            text: "test 1: t1"
-          tooltip:
-            valueDecimals: 2
-          yAxis:
-            labels:
-              format: "{value}"
-          series: [
-            name: "Messwert"
-            data: []
-          ]
-
+          data: []
 
         request(@app)
           .get('/datalogger/data/testId/t1')

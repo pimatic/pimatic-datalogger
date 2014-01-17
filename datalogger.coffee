@@ -111,18 +111,7 @@ module.exports = (env) ->
           return sendError res, e
 
         @getData(device.id, attribute).then( (data) =>
-          res.send
-            title: 
-              text: "#{device.name}: #{attribute}"
-            tooltip:
-              valueDecimals: 2
-            yAxis:
-              labels:
-                format: "{value}"
-            series: [
-              name: "Messwert"
-              data: data
-            ]
+          res.send data: data
         ).done()
 
     logData: (deviceId, attribute, value, date = new Date()) ->
