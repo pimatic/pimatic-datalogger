@@ -107,7 +107,6 @@ module.exports = (env) ->
           device = getDeviceFromRequest req
           attribute = getAttributeFromRequest req, device
         catch e
-          console.log e
           return sendError res, e
 
         @getData(device.id, attribute).then( (data) =>
@@ -129,7 +128,86 @@ module.exports = (env) ->
         Q.nfcall fs.appendFile, file, "#{date.getTime()},#{value}\n"
       )
 
+    getDataInRange: (deviceId, attribute, from, to) ->
+      if from > to then return Q []
 
+      fromTime = from.getTime()
+      toTime = to.getTime()
+
+      data = []
+      current = new Date(2000,0,1,0,0,0)
+      @walkYears(deviceId, attribute, (year) =>
+        current.setFullYear year
+        current.setMonth 0
+        current.setDate 1
+        if from <= current <= to
+          @walkMonths(deviceId, attribute, year, (month) =>
+            current.setMonth(month-1)
+            current.setDate 1
+            if from <= current <= to
+              @walkDays(deviceId, attribute, year, month, (day) =>
+                current.setDate day
+                if from <= current <= to
+                  file = @getPathOfLogFile deviceId, attribute, current
+                  @readDataFromFile(file).then( (d) =>
+                    data = data.concat _.filter(d, ([time,]) => fromTime <= time <= toTime)
+                    return true
+                  )
+                else cont = current < to
+              )
+            else cont = current < to 
+          )
+        else cont = current < to
+      ).then( => data )
+
+
+    fileToNum : (file) =>  parseInt(path.basename(file, '.csv'), 10)
+    dirToNum: (dir) =>  parseInt dir, 10
+    pad: (n) => if n < 10 then '0'+n else n
+
+    walkYears: (deviceId, attribute, callback) =>
+      dir = path.resolve @framework.maindir, 
+        "../../datalogger/#{deviceId}/#{attribute}"
+      Q.nfcall(fs.readdir, dir).then( (dirs) =>
+        years = (_.map dirs, @dirToNum).sort()
+        chain = Q(true)
+        for year in years
+          do (year) =>
+            chain = chain.then( (cont) =>
+              if cont then callback(year) else false 
+            )
+        return chain
+      )
+
+    walkMonths: (deviceId, attribute, year, callback) =>
+      dir = path.resolve @framework.maindir, 
+        "../../datalogger/#{deviceId}/#{attribute}/#{@pad year}"
+      Q.nfcall(fs.readdir, dir).then( (dirs) =>
+        months = (_.map dirs, @dirToNum).sort()
+        chain = Q(true)
+        for month in months
+          do (month) =>
+            chain = chain.then( (cont) =>
+              if cont then callback(month)
+              else false 
+            )
+        return chain
+      )
+
+    walkDays: (deviceId, attribute, year, month, callback) =>
+      dir = path.resolve @framework.maindir, 
+        "../../datalogger/#{deviceId}/#{attribute}/#{@pad year}/#{@pad month}"
+      Q.nfcall(fs.readdir, dir).then( (files) =>
+        days = (_.map files, @fileToNum).sort()
+        chain = Q(true)
+        for day in days 
+          do (day) =>
+            chain = chain.then( (cont) =>
+              if cont then callback(day)
+              else false 
+            )
+        return chain
+      )      
 
     getData: (deviceId, attribute, date = new Date()) ->
       file = @getPathOfLogFile deviceId, attribute, date
@@ -137,26 +215,28 @@ module.exports = (env) ->
       Q.nfcall(fs.exists, file, defer.resolve)
       defer.promise.then( (exists) =>
         unless exists then return []
-        else Q.nfcall(fs.readFile, file).then( (csv) =>
-          csv = csv.toString()
-          if csv.length is 0 then return []
-          json = '[[' + 
-            csv.replace(/\r\n|\n|\r/gm, '],[') #replace new lines with `],[`
-            .replace(/,\[\]/g, '') # remove empty arrays: `[]`
-            .replace(/\],\[$/, '') + # remove last `],[`
-            ']]'
-          JSON.parse(json)
-        )
+        else @readDataFromFile file
+      )
+
+    readDataFromFile: (file) ->
+      Q.nfcall(fs.readFile, file).then( (csv) =>
+        csv = csv.toString()
+        if csv.length is 0 then return []
+        json = '[[' + 
+          csv.replace(/\r\n|\n|\r/gm, '],[') #replace new lines with `],[`
+          .replace(/,\[\]/g, '') # remove empty arrays: `[]`
+          .replace(/\],\[$/, '') + # remove last `],[`
+          ']]'
+        JSON.parse(json)
       )
 
     getPathOfLogFile: (deviceId, attribute, date) ->
       assert deviceId?
       assert attribute?
       assert date instanceof Date
-      pad = (n) => if n < 10 then '0'+n else n
-      year = pad date.getFullYear()
-      month = pad(date.getMonth()+1)
-      day = pad date.getDate()
+      year = @pad date.getFullYear()
+      month = @pad(date.getMonth()+1)
+      day = @pad date.getDate()
       return path.resolve @framework.maindir, 
         "../../datalogger/#{deviceId}/#{attribute}/#{year}/#{month}/#{day}.csv"
 

@@ -199,6 +199,48 @@ module.exports = (env) ->
       after =>
         fs.rmrfSync @dataloggerDir
 
+
+    describe 'getDataInRange()', =>
+
+      it 'should return data from 2020/1/2 to 2021/7/2', (finish) =>
+        deviceId = 'test'
+        attributeName = 't1'
+        from = new Date(2020, 0, 1)
+        to = new Date(2021, 6, 2)
+
+        if fs.existsSync @dataloggerDir
+          fs.rmrfSync @dataloggerDir
+
+        makeFile = (year, month, day, i) =>
+          date = new Date(year, month-1, day, 0, 0, 0)
+          file = plugin.getPathOfLogFile 'test', 't1', date
+          data = "#{date.getTime()}, #{i}"  
+          fs.mkdirsSync path.dirname(file)
+          fs.writeFileSync file, data
+
+        makeFile 2019, 1, 1, 0 #no
+        makeFile 2020, 1, 2, 1 #yes
+        makeFile 2020, 1, 3, 2 #yes
+        makeFile 2020, 3, 6, 3 #yes
+        makeFile 2020, 6, 2, 4 #yes
+        makeFile 2021, 7, 2, 5 #yes
+        makeFile 2021, 7, 3, 6 #no
+
+        expectedData = [
+          [ 1577919600000, 1 ],
+          [ 1578006000000, 2 ],
+          [ 1583449200000, 3 ],
+          [ 1591048800000, 4 ],
+          [ 1625176800000, 5 ] 
+        ]
+
+
+        plugin.getDataInRange(deviceId, attributeName, from, to).then( (data) =>
+          assert.deepEqual data, expectedData
+          finish()
+        ).catch(finish)
+
+
     describe 'logData()', =>
 
       it 'should log the data to csv', (finish) =>
