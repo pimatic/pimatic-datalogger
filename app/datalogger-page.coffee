@@ -84,9 +84,17 @@
       console.log "attribute not found?"
       return
 
+    to = new Date
+    from = new Date()
+    from.setDate(to.getDate()-1)
+
     $.ajax(
       url: "datalogger/data/#{deviceId}/#{attrName}"
       timeout: 30000 #ms
+      type: "POST"
+      data: 
+        fromTime: from.getTime()
+        toTime: to.getTime()
     ).done( (data) ->
 
       options =
@@ -97,6 +105,8 @@
         yAxis:
           labels:
             format: "{value} #{attribute.unit}"
+        rangeSelector:
+          enabled: no
         series: [
           name: attribute.label
           data: data.data

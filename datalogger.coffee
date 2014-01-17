@@ -113,6 +113,23 @@ module.exports = (env) ->
           res.send data: data
         ).done()
 
+      @app.post '/datalogger/data/:deviceId/:attribute', (req, res, next) =>
+        try
+          device = getDeviceFromRequest req
+          attribute = getAttributeFromRequest req, device
+          fromTime = req.body?.fromTime
+          toTime = req.body?.toTime
+          unless fromTime? then throw new Error "fromTime not given"
+          unless toTime? then throw new Error "toTime not given"
+          from = new Date parseInt(fromTime, 0)
+          to = new Date parseInt(toTime, 0)
+        catch e
+          return sendError res, e
+
+        @getDataInRange(device.id, attribute, from, to).then( (data) =>
+          res.send data: data
+        ).done()
+
     logData: (deviceId, attribute, value, date = new Date()) ->
       assert deviceId?
       assert attribute?
@@ -134,30 +151,48 @@ module.exports = (env) ->
       fromTime = from.getTime()
       toTime = to.getTime()
 
+      #console.log from, "form"
+      #console.log to, "to"
       data = []
-      current = new Date(2000,0,1,0,0,0)
+      
       @walkYears(deviceId, attribute, (year) =>
-        current.setFullYear year
-        current.setMonth 0
-        current.setDate 1
-        if from <= current <= to
+        currentTo = new Date(year, 11, 31, 23, 59, 59) #last Day of year
+        # If the current year is before the requested range start then
+        # we can skip the year
+        unless currentTo < from 
           @walkMonths(deviceId, attribute, year, (month) =>
-            current.setMonth(month-1)
-            current.setDate 1
-            if from <= current <= to
+            currentTo.setMonth(month)
+            currentTo.setDate(0)
+            currentTo.setMonth(currentTo.getMonth()-1)
+            # If the current month is before the requested range then
+            # we can skip the month 
+            unless currentTo < from 
               @walkDays(deviceId, attribute, year, month, (day) =>
-                current.setDate day
-                if from <= current <= to
-                  file = @getPathOfLogFile deviceId, attribute, current
+                currentTo.setDate day
+                # If the day is before the requested range  then
+                # we can skip the day
+                unless currentTo < from 
+                  date = new Date(year, month-1, day)
+                  file = @getPathOfLogFile deviceId, attribute, date
+                  #console.log "reading file", file
                   @readDataFromFile(file).then( (d) =>
                     data = data.concat _.filter(d, ([time,]) => fromTime <= time <= toTime)
-                    return true
+                    # Just continue if the end of the current day is before the end
+                    # of the requested range
+                    currentTo < to
                   )
-                else cont = current < to
+                # Just continue if the end of the current day is before the end
+                # of the requested rannge
+                else currentTo < to
               )
-            else cont = current < to 
+            # Just continue if the end of the current month is before the end
+            # of the requested rannge
+            else currentTo < to
           )
-        else cont = current < to
+        # Just continue if the end of the current year is before the end
+        # of the requested rannge
+        else currentTo < to
+      # Finally return the concatinated data.
       ).then( => data )
 
 
