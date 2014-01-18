@@ -41,7 +41,7 @@
       unless chartInfo? then return
       if data.id is chartInfo.deviceId and data.name is chartInfo.attrName
         point = [new Date().getTime(), data.value]
-        showToast __('new sensor value: %s %s', data.value, chartInfo.unit)
+        pimatic.showToast __('new sensor value: %s %s', data.value, chartInfo.unit)
         $("#chart").highcharts().series[0].addPoint point, true, true
       return
     return
