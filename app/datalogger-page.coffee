@@ -13,7 +13,7 @@
     $("#logger-attr-values").on "click", '.show ', (event) ->
       sensorValueName = $(this).parents(".attr-value").data('attr-value-name')
       if deviceId?
-        showGraph deviceId, sensorValueName, chartInfo.range
+        showGraph deviceId, sensorValueName, chartInfo?.range
       return
 
     $("#logger-attr-values").on "change", ".logging-switch", (event, ui) ->
