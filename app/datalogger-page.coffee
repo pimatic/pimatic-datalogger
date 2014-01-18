@@ -10,6 +10,11 @@
       jQuery.mobile.changePage '#datalogger'
 
   $(document).on "pagecreate", '#datalogger', (event) ->
+
+    Highcharts.setOptions options =
+      global:
+        useUTC: false
+
     $("#logger-attr-values").on "click", '.show ', (event) ->
       sensorValueName = $(this).parents(".attr-value").data('attr-value-name')
       if deviceId?
