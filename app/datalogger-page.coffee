@@ -9,20 +9,25 @@
       deviceId = $(this).parent('.item').data('item-id')
       jQuery.mobile.changePage '#datalogger'
 
-
   $(document).on "pagecreate", '#datalogger', (event) ->
     $("#logger-attr-values").on "click", '.show ', (event) ->
       sensorValueName = $(this).parents(".attr-value").data('attr-value-name')
       if deviceId?
-        showGraph deviceId, sensorValueName
+        showGraph deviceId, sensorValueName, chartInfo.range
       return
 
-    $("#logger-attr-values").on "change", ".logging-switch",(event, ui) ->
+    $("#logger-attr-values").on "change", ".logging-switch", (event, ui) ->
       sensorValueName = $(this).parents(".attr-value").data('attr-value-name')
       action = (if $(this).val() is 'yes' then "add" else "remove")
       $.get("/datalogger/#{action}/#{deviceId}/#{sensorValueName}")
         .done(ajaxShowToast)
         .fail(ajaxAlertFail)
+      return
+
+
+    $("#datalogger").on "change", "#chart-select-range", (event, ui) ->
+      val = $(this).val()
+      showGraph chartInfo.deviceId, chartInfo.attrName, val
       return
 
 
@@ -36,16 +41,18 @@
       return
     return
 
+
+
   $(document).on "pagehide", '#datalogger', (event) ->
     if sensorListener?
       pimatic.socket.removeListener 'device-attribute', sensorListener
     return
-  
 
   $(document).on "pagebeforeshow", '#datalogger', (event) ->
     unless deviceId?
       jQuery.mobile.changePage '#index'
       return false
+    $('#chart-container').hide()
     
     $("#logger-attr-values").find('li.attr-value').remove()
     $.get( "datalogger/info/#{deviceId}", (data) ->
@@ -69,12 +76,15 @@
       $("#logger-attr-values").listview('refresh')
       for name, logged of data.loggingAttributes
         if logged 
-          showGraph deviceId, name
+          setTimeout =>
+            showGraph deviceId, name, "day"
+          , 1
           return
     ).done(ajaxShowToast).fail(ajaxAlertFail)
     return
 
-  showGraph = (deviceId, attrName) ->
+
+  showGraph = (deviceId, attrName, from, to) ->
     device = pimatic.devices[deviceId]
     unless device
       console.log "device not found?"
@@ -84,9 +94,20 @@
       console.log "attribute not found?"
       return
 
-    to = new Date
-    from = new Date()
-    from.setDate(to.getDate()-1)
+    range = null
+    unless from instanceof Date and to instanceof Date
+      range = from
+      to = new Date
+      from = new Date()
+
+      switch range
+        when "day" then from.setDate(to.getDate()-1)
+        when "week" then from.setDate(to.getDate()-7)
+        when "month" then from.setDate(to.getDate()-30)
+        when "year" then from.setDate(to.getDate()-365)
+        else 
+          range = "day"
+          from.setDate(to.getDate()-1)
 
     $.ajax(
       url: "datalogger/data/#{deviceId}/#{attrName}"
@@ -96,7 +117,7 @@
         fromTime: from.getTime()
         toTime: to.getTime()
     ).done( (data) ->
-
+      $('#chart-container').show()
       options =
         title: 
           text: attribute.label
@@ -107,16 +128,23 @@
             format: "{value} #{attribute.unit}"
         rangeSelector:
           enabled: no
+        credits:
+          enabled: false
+        tooltip:
+          valueDecimals: 2
+          valueSuffix: " " + attribute.unit
         series: [
           name: attribute.label
           data: data.data
         ]
-
-
       chart = $("#chart").highcharts "StockChart", options
+      setTimeout =>
+        $('#chart').highcharts?().reflow();
+      , 500
       chartInfo =
         deviceId: deviceId
         attrName: attrName
+        range: range
     ).fail(ajaxAlertFail)
 
 )()
