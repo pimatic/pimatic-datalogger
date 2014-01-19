@@ -1,7 +1,7 @@
 pimatic datalogger
 =======================
 
-Allows you to log sensor data like temperature and humidity to da database and to show it on 
+Allows you to log sensor data like temperature and humidity to csv files and to show it on 
 a nice graph on the mobile-frontend.
 
 Example config:
