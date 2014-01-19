@@ -7,7 +7,7 @@
 
     $('#items').on "click", 'li.item .attributes.contains-attr-type-Number', ->
       deviceId = $(this).parent('.item').data('item-id')
-      jQuery.mobile.changePage '#datalogger'
+      jQuery.mobile.changePage '#datalogger', transition: 'slide'
 
   $(document).on "pagecreate", '#datalogger', (event) ->
 
