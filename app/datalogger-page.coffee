@@ -81,9 +81,7 @@
       $("#logger-attr-values").listview('refresh')
       for name, logged of data.loggingAttributes
         if logged 
-          setTimeout =>
-            showGraph deviceId, name, "day"
-          , 1
+          showGraph deviceId, name, $('#chart-select-range').val()
           return
     ).done(ajaxShowToast).fail(ajaxAlertFail)
     return
