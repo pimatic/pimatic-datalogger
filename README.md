@@ -9,10 +9,10 @@ Example config:
 
     {
       "plugin": "datalogger",
-      "sensors": [
+      "devices": [
         {
-          "id": "pilight-work-temperature",
-          "sensorValues": [
+          "id": "pilight-living-temperature",
+          "attributes": [
             "temperature",
             "humidity"
           ]
