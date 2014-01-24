@@ -2,6 +2,8 @@ Highcharts.Chart.prototype.callbacks.push(function(chart) {
   var hasTouch = document.documentElement.ontouchstart !== undefined,
       container = chart.container;
 
+  if (!hasTouch) return;
+
   callTrough = function(f) {
     return function(e) {
       // if we have touch
@@ -33,33 +35,4 @@ Highcharts.Chart.prototype.callbacks.push(function(chart) {
   container.onmousemove = callTrough(container.ontouchmove, 'touchmove');
   container.ontouchmove = callTrough(container.onmousemove, 'mousemove');
  
-  // mouseMove = function (e) {
-  //   if (hasTouch) {
-  //     if (e && e.touches && e.touches.length > 1) {
-  //       mouseTracker.onContainerTouchMove(e);
-  //     } else {
-  //       if (mouseTracker.inClass(e.target, 'highcharts-tracker') || 
-  //         chart.isInsidePlot(e.chartX - chart.plotLeft, e.chartY - chart.plotTop)) {
-  //         ;
-  //       } else {
-  //         mouseTracker.onContainerTouchMove(e);
-  //       }
-  //       return
-  //     }
-  //   } else {
-  //     mouseTracker.onContainerMouseMove(e);
-  //   }
-  // };
-  
-  // click = function (e) {
-  //   if (hasTouch) {
-  //       mouseTracker.onContainerMouseMove(e);   
-  //   }
-  //   mouseTracker.onContainerClick(e);
-  // };
- 
-  // container.onmousemove = container.ontouchstart = container.ontouchmove = mouseMove;
-  // container.onclick = click;
-
-  console.log( container.onmousemove);
 });
