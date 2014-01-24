@@ -29,6 +29,7 @@ module.exports = (env) ->
         mobileFrontend = @framework.getPlugin 'mobile-frontend'
         if mobileFrontend?
           mobileFrontend.registerAssetFile 'js', "pimatic-datalogger/app/js/highstock.js"
+          mobileFrontend.registerAssetFile 'js', "pimatic-datalogger/app/js/touch-tooltip-fix.js"
           mobileFrontend.registerAssetFile 'js', "pimatic-datalogger/app/datalogger-page.coffee"
           mobileFrontend.registerAssetFile 'css', "pimatic-datalogger/app/css/datalogger.css"
           mobileFrontend.registerAssetFile 'html', "pimatic-datalogger/app/datalogger-page.jade"
