@@ -29,24 +29,10 @@
         .fail(ajaxAlertFail)
       return
 
-
     $("#datalogger").on "change", "#chart-select-range", (event, ui) ->
       val = $(this).val()
       showGraph chartInfo.deviceId, chartInfo.attrName, val
       return
-
-
-  $(document).on "pageshow", '#datalogger', (event) ->
-    pimatic.socket.on 'device-attribute', sensorListener = (data) ->
-      unless chartInfo? then return
-      if data.id is chartInfo.deviceId and data.name is chartInfo.attrName
-        point = [new Date().getTime(), data.value]
-        pimatic.showToast __('new sensor value: %s %s', data.value, chartInfo.unit)
-        $("#chart").highcharts().series[0].addPoint point, true, true
-      return
-    return
-
-
 
   $(document).on "pagehide", '#datalogger', (event) ->
     if sensorListener?
@@ -57,6 +43,15 @@
     unless deviceId?
       jQuery.mobile.changePage '#index'
       return false
+
+    pimatic.socket.on 'device-attribute', sensorListener = (data) ->
+      unless chartInfo? then return
+      if data.id is chartInfo.deviceId and data.name is chartInfo.attrName
+        point = [new Date().getTime(), data.value]
+        pimatic.showToast __('new sensor value: %s %s', data.value, chartInfo.unit)
+        $("#chart").highcharts().series[0].addPoint point, true, true
+      return
+
     $('#chart-container').hide()
     
     $("#logger-attr-values").find('li.attr-value').remove()
