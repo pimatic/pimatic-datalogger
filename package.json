@@ -6,7 +6,7 @@
   "files": [
     "doc",
     "app",
-    "datalogger-config-shema.coffee",
+    "datalogger-config-schema.coffee",
     "datalogger.coffee",
     "README.md"
   ],

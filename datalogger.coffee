@@ -13,7 +13,7 @@ module.exports = (env) ->
     deviceListener: {}
 
     init: (@app, @framework, @config) =>
-      conf = convict require("./datalogger-config-shema")
+      conf = convict require("./datalogger-config-schema")
       conf.load config 
       conf.validate()
 
