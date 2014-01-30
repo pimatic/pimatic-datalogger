@@ -162,9 +162,13 @@ module.exports = (env) ->
         # we can skip the year
         unless currentTo < from 
           @walkMonths(deviceId, attribute, year, (month) =>
+            # Set currentTo to the last day of month:
+            # date month starts by 0 and we start by 1
+            # so its the next month
+            currentTo.setDate(1)
             currentTo.setMonth(month)
+            #will result in the last day of the previous month
             currentTo.setDate(0)
-            currentTo.setMonth(currentTo.getMonth()-1)
             # If the current month is before the requested range then
             # we can skip the month 
             unless currentTo < from 
