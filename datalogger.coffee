@@ -271,7 +271,7 @@ module.exports = (env) ->
           ']]'
           data = JSON.parse(json)
         catch e
-          env.debug.warn "Error parsing csv file #{file}: #{e.message}"
+          env.logger.warn "Error parsing csv file #{file}: #{e.message}"
         return data       
       )
 
