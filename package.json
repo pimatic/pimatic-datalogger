@@ -10,7 +10,7 @@
     "datalogger.coffee",
     "README.md"
   ],
-  "version": "0.5.2",
+  "version": "0.5.3",
   "homepage": "http://github.com/pimatic/pimatic",
   "repository": {
     "type": "git",
