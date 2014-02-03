@@ -262,12 +262,17 @@ module.exports = (env) ->
       Q.nfcall(fs.readFile, file).then( (csv) =>
         csv = csv.toString()
         if csv.length is 0 then return []
-        json = '[[' + 
+        data = []
+        try
+          json = '[[' + 
           csv.replace(/\r\n|\n|\r/gm, '],[') #replace new lines with `],[`
           .replace(/,\[\]/g, '') # remove empty arrays: `[]`
           .replace(/\],\[$/, '') + # remove last `],[`
           ']]'
-        JSON.parse(json)
+          data = JSON.parse(json)
+        catch e
+          env.debug.warn "Error parsing csv file #{file}: #{e.message}"
+        return data       
       )
 
     getPathOfLogFile: (deviceId, attribute, date) ->
