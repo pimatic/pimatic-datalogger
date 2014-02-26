@@ -260,10 +260,14 @@ module.exports = (env) ->
 
     readDataFromFile: (file) ->
       Q.nfcall(fs.readFile, file).then( (csv) =>
-        csv = csv.toString()
+        # remove accidential NUL bytes from bad file writes (power failure)
+        csv = csv.toString('utf8').replace(/\0/g, '')
         if csv.length is 0 then return []
         data = []
+        json = null
         try
+          # poor mans csv parse: Convert the string to an javascript array:
+          # "10,1\n20,2" => "[[10,1], [20,2]]"
           json = '[[' + 
           csv.replace(/\r\n|\n|\r/gm, '],[') #replace new lines with `],[`
           .replace(/,\[\]/g, '') # remove empty arrays: `[]`
@@ -272,6 +276,7 @@ module.exports = (env) ->
           data = JSON.parse(json)
         catch e
           env.logger.warn "Error parsing csv file #{file}: #{e.message}"
+          evn.logger.debug "in \"#{json}\""
         return data       
       )
 
