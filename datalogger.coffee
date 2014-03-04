@@ -137,11 +137,12 @@ module.exports = (env) ->
       assert value?
 
       file = @getPathOfLogFile deviceId, attribute, date
-      defer = Q.defer()
-      Q.nfcall(fs.exists, file, defer.resolve)
-      defer.promise.then( (exists) =>
+      deferred = Q.defer()
+      fileDir = path.dirname(file)
+      fs.exists(fileDir, deferred.resolve)
+      deferred.promise.then( (exists) =>
         unless exists
-          Q.nfcall fs.mkdirs, path.dirname(file)
+          Q.nfcall fs.mkdirs, fileDir
       ).then( =>
         Q.nfcall fs.appendFile, file, "#{date.getTime()},#{value}\n"
       )
@@ -251,9 +252,9 @@ module.exports = (env) ->
 
     getData: (deviceId, attribute, date = new Date()) ->
       file = @getPathOfLogFile deviceId, attribute, date
-      defer = Q.defer()
-      Q.nfcall(fs.exists, file, defer.resolve)
-      defer.promise.then( (exists) =>
+      deferred = Q.defer()
+      fs.exists(file, deferred.resolve)
+      deferred.promise.then( (exists) =>
         unless exists then return []
         else @readDataFromFile file
       )
