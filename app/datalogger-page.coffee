@@ -52,9 +52,8 @@
         serie = $("#chart").highcharts().series[0]
         shift = no
         firstPoint = null
-        for p in serie.data
-          firstPoint = p
-          break;
+        if serie.options.data.length > 0
+          firstPoint = serie.options.data[0]
         if firstPoint?
           {from, to} = getDateRange(chartInfo.range)
           if firstPoint.x < from.getTime()
@@ -108,13 +107,12 @@
 
   updateChartInfo = () ->
     chart = $("#chart").highcharts()
-    data = chart.series[0].data
+    data = chart.series[0].options.data
     lastPoint = null
-    for p in data
-      lastPoint = p
+    if data.length > 0 then lastPoint = data[data.length-1]
     if lastPoint?
-      $('.last-update-time').text(Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', lastPoint.x)) 
-      $('.last-update-value').text(Highcharts.numberFormat(lastPoint.y, 2) + " " + chartInfo.unit)
+      $('.last-update-time').text(Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', lastPoint[0])) 
+      $('.last-update-value').text(Highcharts.numberFormat(lastPoint[1], 2) + " " + chartInfo.unit)
       $('#chart-info').show()
     else
       $('#chart-info').hide()
@@ -131,6 +129,8 @@
 
     {from, to} = getDateRange(range)
 
+    $('#chart-container').show(0)
+
     $.ajax(
       url: "datalogger/data/#{deviceId}/#{attrName}"
       timeout: 30000 #ms
@@ -139,7 +139,11 @@
         fromTime: from.getTime()
         toTime: to.getTime()
     ).done( (data) ->
-      $('#chart-container').show()
+      chartInfo =
+        deviceId: deviceId
+        attrName: attrName
+        range: range
+        unit: attribute.unit
       options =
         title: 
           text: attribute.label
@@ -159,16 +163,14 @@
           name: attribute.label
           data: data.data
         ]
+        chart:
+          events:
+            load: ->
+              updateChartInfo()
       chart = $("#chart").highcharts "StockChart", options
-      setTimeout =>
-        $('#chart').highcharts?().reflow();
-      , 500
-      chartInfo =
-        deviceId: deviceId
-        attrName: attrName
-        range: range
-        unit: attribute.unit
-      updateChartInfo()
+      setTimeout( (=>
+        $("#chart").highcharts().reflow()
+      ), 500)
     ).fail(ajaxAlertFail)
 
 )()
