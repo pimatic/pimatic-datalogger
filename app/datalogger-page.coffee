@@ -56,7 +56,7 @@
           firstPoint = serie.options.data[0]
         if firstPoint?
           {from, to} = getDateRange(chartInfo.range)
-          if firstPoint.x < from.getTime()
+          if firstPoint[0] < from.getTime()
             shift = yes
         serie.addPoint(point, redraw=yes, shift, animate=yes)
         updateChartInfo()
