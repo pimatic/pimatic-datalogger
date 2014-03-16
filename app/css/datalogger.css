@@ -27,6 +27,12 @@ li.item .attributes.contains-attr-type-Number{
   cursor: pointer;
 }
 
+#chart-info {
+  text-align: right;
+  padding-top: 7px;
+  font-size: 15px;
+}
+
 
 @media (max-width:28em) {
   #logger-attr-values li div.controls label {

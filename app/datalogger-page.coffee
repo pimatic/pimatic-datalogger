@@ -18,7 +18,7 @@
     $("#logger-attr-values").on "click", '.show ', (event) ->
       sensorValueName = $(this).parents(".attr-value").data('attr-value-name')
       if deviceId?
-        showGraph deviceId, sensorValueName, chartInfo?.range
+        showGraph(deviceId, sensorValueName, chartInfo?.range)
       return
 
     $("#logger-attr-values").on "change", ".logging-switch", (event, ui) ->
@@ -31,7 +31,7 @@
 
     $("#datalogger").on "change", "#chart-select-range", (event, ui) ->
       val = $(this).val()
-      showGraph chartInfo.deviceId, chartInfo.attrName, val
+      showGraph(chartInfo.deviceId, chartInfo.attrName, val)
       return
 
   $(document).on "pagehide", '#datalogger', (event) ->
@@ -43,13 +43,21 @@
     unless deviceId?
       jQuery.mobile.changePage '#index'
       return false
+    $('#chart-info').hide()
 
     pimatic.socket.on 'device-attribute', sensorListener = (data) ->
       unless chartInfo? then return
       if data.id is chartInfo.deviceId and data.name is chartInfo.attrName
         point = [new Date().getTime(), data.value]
+        serie = $("#chart").highcharts().series[0]
+        shift = no
+        if serie.data.length > 0 
+          {from, to} = getDateRange(chartInfo.range)
+          if serie.data[0].x < from.getTime()
+            shift = yes
+        serie.addPoint(point, redraw=yes, shift, animate=yes)
+        updateChartInfo()
         pimatic.showToast __('new sensor value: %s %s', data.value, chartInfo.unit)
-        $("#chart").highcharts().series[0].addPoint point, true, true
       return
 
     $('#chart-container').hide()
@@ -76,13 +84,36 @@
       $("#logger-attr-values").listview('refresh')
       for name, logged of data.loggingAttributes
         if logged 
-          showGraph deviceId, name, $('#chart-select-range').val()
+          range = $('#chart-select-range').val()
+          showGraph(deviceId, name, range)
           return
     ).done(ajaxShowToast).fail(ajaxAlertFail)
     return
 
 
-  showGraph = (deviceId, attrName, from, to) ->
+  getDateRange = (range = 'day') ->
+    to = new Date
+    from = new Date()
+
+    switch range
+      when "day" then from.setDate(to.getDate()-1)
+      when "week" then from.setDate(to.getDate()-7)
+      when "month" then from.setDate(to.getDate()-30)
+      when "year" then from.setDate(to.getDate()-365)
+    return {from, to}
+
+  updateChartInfo = () ->
+    chart = $("#chart").highcharts()
+    data = chart.series[0].data
+    last = (if data.length > 0 then data[data.length-1] else null)
+    if last?
+      $('.last-update-time').text(Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', last.x)) 
+      $('.last-update-value').text(Highcharts.numberFormat(last.y, 2) + " " + chartInfo.unit)
+      $('#chart-info').show()
+    else
+      $('#chart-info').hide()
+
+  showGraph = (deviceId, attrName, range = 'day') ->
     device = pimatic.devices[deviceId]
     unless device
       console.log "device not found?"
@@ -92,20 +123,7 @@
       console.log "attribute not found?"
       return
 
-    range = null
-    unless from instanceof Date and to instanceof Date
-      range = from
-      to = new Date
-      from = new Date()
-
-      switch range
-        when "day" then from.setDate(to.getDate()-1)
-        when "week" then from.setDate(to.getDate()-7)
-        when "month" then from.setDate(to.getDate()-30)
-        when "year" then from.setDate(to.getDate()-365)
-        else 
-          range = "day"
-          from.setDate(to.getDate()-1)
+    {from, to} = getDateRange(range)
 
     $.ajax(
       url: "datalogger/data/#{deviceId}/#{attrName}"
@@ -144,6 +162,7 @@
         attrName: attrName
         range: range
         unit: attribute.unit
+      updateChartInfo()
     ).fail(ajaxAlertFail)
 
 )()

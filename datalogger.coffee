@@ -153,16 +153,16 @@ module.exports = (env) ->
       fromTime = from.getTime()
       toTime = to.getTime()
 
-      #console.log from, "form"
-      #console.log to, "to"
+      #console.log from, "fromTime"
+      #console.log to, "toTime"
       data = []
-      
-      @walkYears(deviceId, attribute, (year) =>
+
+      return @walkYears(deviceId, attribute, (year) =>
         currentTo = new Date(year, 11, 31, 23, 59, 59) #last Day of year
         # If the current year is before the requested range start then
         # we can skip the year
         unless currentTo < from 
-          @walkMonths(deviceId, attribute, year, (month) =>
+          return @walkMonths(deviceId, attribute, year, (month) =>
             # Set currentTo to the last day of month:
             # date month starts by 0 and we start by 1
             # so its the next month
@@ -173,7 +173,7 @@ module.exports = (env) ->
             # If the current month is before the requested range then
             # we can skip the month 
             unless currentTo < from 
-              @walkDays(deviceId, attribute, year, month, (day) =>
+              return @walkDays(deviceId, attribute, year, month, (day) =>
                 currentTo.setDate day
                 # If the day is before the requested range  then
                 # we can skip the day
@@ -199,6 +199,9 @@ module.exports = (env) ->
         # of the requested rannge
         else currentTo < to
       # Finally return the concatinated data.
+      ).catch( (error) =>
+        env.logger.error "Error reading datalogger data: #{error.message}"
+        env.logger.debug error.stack
       ).then( => data )
 
 
@@ -215,9 +218,15 @@ module.exports = (env) ->
         for year in years
           do (year) =>
             chain = chain.then( (cont) =>
-              if cont then callback(year) else false 
+              return doContinute = (if cont then callback(year) else no)
             )
         return chain
+      ).catch(  (error) =>
+        if error.code is 'ENOENT' 
+          env.logger.debug "directory: #{dir} does not exist"
+          return Q(false)
+        else
+          throw error
       )
 
     walkMonths: (deviceId, attribute, year, callback) =>
@@ -233,6 +242,12 @@ module.exports = (env) ->
               else false 
             )
         return chain
+      ).catch(  (error) =>
+        if error.code is 'ENOENT' 
+          env.logger.debug "directory: #{dir} does not exist"
+          return Q(false)
+        else
+          throw error
       )
 
     walkDays: (deviceId, attribute, year, month, callback) =>
@@ -248,7 +263,13 @@ module.exports = (env) ->
               else false 
             )
         return chain
-      )      
+      ).catch(  (error) =>
+        if error.code is 'ENOENT' 
+          env.logger.debug "directory: #{dir} does not exist"
+          return Q(false)
+        else
+          throw error
+      )     
 
     getData: (deviceId, attribute, date = new Date()) ->
       file = @getPathOfLogFile deviceId, attribute, date
