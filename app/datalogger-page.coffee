@@ -51,9 +51,13 @@
         point = [new Date().getTime(), data.value]
         serie = $("#chart").highcharts().series[0]
         shift = no
-        if serie.data.length > 0 
+        firstPoint = null
+        for p in serie.data
+          firstPoint = p
+          break;
+        if firstPoint?
           {from, to} = getDateRange(chartInfo.range)
-          if serie.data[0].x < from.getTime()
+          if firstPoint.x < from.getTime()
             shift = yes
         serie.addPoint(point, redraw=yes, shift, animate=yes)
         updateChartInfo()
@@ -105,10 +109,12 @@
   updateChartInfo = () ->
     chart = $("#chart").highcharts()
     data = chart.series[0].data
-    last = (if data.length > 0 then data[data.length-1] else null)
-    if last?
-      $('.last-update-time').text(Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', last.x)) 
-      $('.last-update-value').text(Highcharts.numberFormat(last.y, 2) + " " + chartInfo.unit)
+    lastPoint = null
+    for p in data
+      lastPoint = p
+    if lastPoint?
+      $('.last-update-time').text(Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', lastPoint.x)) 
+      $('.last-update-value').text(Highcharts.numberFormat(lastPoint.y, 2) + " " + chartInfo.unit)
       $('#chart-info').show()
     else
       $('#chart-info').hide()
