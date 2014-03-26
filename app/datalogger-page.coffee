@@ -1,12 +1,12 @@
 ( ->
-  deviceId = null
+  device = null
   chartInfo = null
   sensorListener = null
 
   $(document).on "pagecreate", '#index', (event) ->
 
-    $('#items').on "click", 'li.item .attributes.contains-attr-type-Number', ->
-      deviceId = $(this).parent('.item').data('item-id')
+    $('#items').on "click", 'li.item .attributes.contains-attr-type-number', ->
+      device = ko.dataFor($(this).parent('.item')[0])
       jQuery.mobile.changePage '#datalogger', transition: 'slide'
 
   $(document).on "pagecreate", '#datalogger', (event) ->
@@ -17,21 +17,21 @@
 
     $("#logger-attr-values").on "click", '.show ', (event) ->
       sensorValueName = $(this).parents(".attr-value").data('attr-value-name')
-      if deviceId?
-        showGraph(deviceId, sensorValueName, chartInfo?.range)
+      if device?
+        showGraph(device, sensorValueName, chartInfo?.range)
       return
 
     $("#logger-attr-values").on "change", ".logging-switch", (event, ui) ->
       sensorValueName = $(this).parents(".attr-value").data('attr-value-name')
       action = (if $(this).val() is 'yes' then "add" else "remove")
-      $.get("/datalogger/#{action}/#{deviceId}/#{sensorValueName}")
+      $.get("/datalogger/#{action}/#{device.deviceId}/#{sensorValueName}")
         .done(ajaxShowToast)
         .fail(ajaxAlertFail)
       return
 
     $("#datalogger").on "change", "#chart-select-range", (event, ui) ->
       val = $(this).val()
-      showGraph(chartInfo.deviceId, chartInfo.attrName, val)
+      showGraph(chartInfo.device, chartInfo.attrName, val)
       return
 
   $(document).on "pagehide", '#datalogger', (event) ->
@@ -40,14 +40,14 @@
     return
 
   $(document).on "pagebeforeshow", '#datalogger', (event) ->
-    unless deviceId?
+    unless device?
       jQuery.mobile.changePage '#index'
       return false
     $('#chart-info').hide()
 
     pimatic.socket.on 'device-attribute', sensorListener = (data) ->
       unless chartInfo? then return
-      if data.id is chartInfo.deviceId and data.name is chartInfo.attrName
+      if data.id is chartInfo.device.deviceId and data.name is chartInfo.attrName
         point = [new Date().getTime(), data.value]
         serie = $("#chart").highcharts().series[0]
         shift = no
@@ -66,10 +66,10 @@
     $('#chart-container').hide()
     
     $("#logger-attr-values").find('li.attr-value').remove()
-    $.get( "datalogger/info/#{deviceId}", (data) ->
+    $.get( "datalogger/info/#{device.deviceId}", (data) ->
       for name, logged of data.loggingAttributes
-        attribute = pimatic.devices[deviceId]?.attributes?[name]
-        unless attribute
+        attribute = device.getAttribute(name)
+        unless attribute?
           console.log "could not find attribute #{name}"
         li = $ $('#datalogger-attr-value-template').html()
         li.find('.attr-value-name').text(attribute.label)
@@ -88,7 +88,7 @@
       for name, logged of data.loggingAttributes
         if logged 
           range = $('#chart-select-range').val()
-          showGraph(deviceId, name, range)
+          showGraph(device, name, range)
           return
     ).done(ajaxShowToast).fail(ajaxAlertFail)
     return
@@ -117,12 +117,11 @@
     else
       $('#chart-info').hide()
 
-  showGraph = (deviceId, attrName, range = 'day') ->
-    device = pimatic.devices[deviceId]
+  showGraph = (device, attrName, range = 'day') ->
     unless device
       console.log "device not found?"
       return
-    attribute = device.attributes[attrName]
+    attribute = device.getAttribute(attrName)
     unless attribute
       console.log "attribute not found?"
       return
@@ -132,7 +131,7 @@
     $('#chart-container').show(0)
 
     $.ajax(
-      url: "datalogger/data/#{deviceId}/#{attrName}"
+      url: "datalogger/data/#{device.deviceId}/#{attrName}"
       timeout: 30000 #ms
       type: "POST"
       data: 
@@ -140,7 +139,7 @@
         toTime: to.getTime()
     ).done( (data) ->
       chartInfo =
-        deviceId: deviceId
+        device: device
         attrName: attrName
         range: range
         unit: attribute.unit
