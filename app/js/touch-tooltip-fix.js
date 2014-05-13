@@ -16,7 +16,11 @@ Highcharts.Chart.prototype.callbacks.push(function(chart) {
             chart.isInsidePlot(e.chartX - chart.plotLeft, e.chartY - chart.plotTop)) {
             //let system handle the event ot allow scralling
             setTimeout(function() {
-              f(e);
+              try {
+                f(e);
+              } catch (e) {
+                ;//console.log("ignore:", e);
+              }
             }, 1);
             return;
           } else {
