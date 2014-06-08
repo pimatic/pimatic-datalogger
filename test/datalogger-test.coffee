@@ -8,6 +8,7 @@ module.exports = (env) ->
   os = require 'os'
   events = require 'events'
   path = require 'path'
+  t = env.require('decl-api').types
 
   describe "datalogger", ->
 
@@ -29,10 +30,10 @@ module.exports = (env) ->
           attributes:
             t1:
               description: "a test value"
-              type: Number
+              type: t.number
             t2:
               description: "another test value"
-              type: Number
+              type: t.number
       ) 
 
 

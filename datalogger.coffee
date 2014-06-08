@@ -19,7 +19,7 @@ module.exports = (env) ->
 
       unless @config.devices? then @config.devices = []
 
-      @framework.on "device", (device) =>
+      @framework.on "deviceAdded", (device) =>
         c =  @getDeviceConfig device.id
         if c? then @addLoggerForDevice device, c.attributes
         return
