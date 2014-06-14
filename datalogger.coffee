@@ -26,20 +26,20 @@ module.exports = (env) ->
 
       @framework.on "after init", =>
         
-        mobileFrontend = @framework.getPlugin 'mobile-frontend'
-        if mobileFrontend?
-          mobileFrontend.registerAssetFile 'js', "pimatic-datalogger/app/js/highstock.js"
-          mobileFrontend.registerAssetFile 'js', "pimatic-datalogger/app/js/touch-tooltip-fix.js"
-          mobileFrontend.registerAssetFile 'js', "pimatic-datalogger/app/datalogger-page.coffee"
-          mobileFrontend.registerAssetFile 'css', "pimatic-datalogger/app/css/datalogger.css"
-          mobileFrontend.registerAssetFile 'html', "pimatic-datalogger/app/datalogger-page.jade"
-        else
-          env.logger.warn "datalogger could not find mobile-frontend. No gui will be available"
+        # mobileFrontend = @framework.getPlugin 'mobile-frontend'
+        # if mobileFrontend?
+        #   mobileFrontend.registerAssetFile 'js', "pimatic-datalogger/app/js/highstock.js"
+        #   mobileFrontend.registerAssetFile 'js', "pimatic-datalogger/app/js/touch-tooltip-fix.js"
+        #   mobileFrontend.registerAssetFile 'js', "pimatic-datalogger/app/datalogger-page.coffee"
+        #   mobileFrontend.registerAssetFile 'css', "pimatic-datalogger/app/css/datalogger.css"
+        #   mobileFrontend.registerAssetFile 'html', "pimatic-datalogger/app/datalogger-page.jade"
+        # else
+        #   env.logger.warn "datalogger could not find mobile-frontend. No gui will be available"
 
-        for sensor in @config.devices 
-          unless @deviceListener[sensor.id]?
-            env.logger.warn "No device with id: #{sensor.id} found to log values."
-        return
+        # for sensor in @config.devices 
+        #   unless @deviceListener[sensor.id]?
+        #     env.logger.warn "No device with id: #{sensor.id} found to log values."
+        # return
 
       sendError = (res, error) =>
         res.send 406, success: false, message: error.message
