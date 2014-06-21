@@ -1,8 +1,11 @@
 # #datalogger configuration options
 
 # Defines a `node-convict` config-schema and exports it.
-module.exports =
-  sensors:
-    doc: "The sensors to log"
-    format: Array
-    default: []
+module.exports = {
+  type: "string"
+  properties:
+    sensors:
+      description: "The sensors to log"
+      type: "array"
+      default: []
+}

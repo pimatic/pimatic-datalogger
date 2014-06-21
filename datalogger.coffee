@@ -1,6 +1,5 @@
 module.exports = (env) ->
 
-  convict = env.require "convict"
   Q = env.require 'q'
   assert = env.require 'cassert'
   _ = env.require 'lodash'
@@ -13,10 +12,6 @@ module.exports = (env) ->
     deviceListener: {}
 
     init: (@app, @framework, @config) =>
-      conf = convict require("./datalogger-config-schema")
-      conf.load config 
-      conf.validate()
-
       unless @config.devices? then @config.devices = []
 
       @framework.on "deviceAdded", (device) =>
