@@ -1,6 +1,6 @@
 module.exports = (env) ->
 
-  Q = env.require 'q'
+  Promise = env.require 'bluebird'
   assert = env.require 'cassert'
   _ = env.require 'lodash'
   fs = env.require 'fs.extra'
@@ -143,7 +143,7 @@ module.exports = (env) ->
       )
 
     getDataInRange: (deviceId, attribute, from, to) ->
-      if from > to then return Q []
+      if from > to then return Promise.resolve []
 
       fromTime = from.getTime()
       toTime = to.getTime()
@@ -209,7 +209,7 @@ module.exports = (env) ->
         "../../datalogger/#{deviceId}/#{attribute}"
       Q.nfcall(fs.readdir, dir).then( (dirs) =>
         years = (_.map dirs, @dirToNum).sort()
-        chain = Q(true)
+        chain = Promise.resolve(true)
         for year in years
           do (year) =>
             chain = chain.then( (cont) =>
@@ -219,7 +219,7 @@ module.exports = (env) ->
       ).catch(  (error) =>
         if error.code is 'ENOENT' 
           env.logger.debug "directory: #{dir} does not exist"
-          return Q(false)
+          return Promise.resolve(false)
         else
           throw error
       )
@@ -229,7 +229,7 @@ module.exports = (env) ->
         "../../datalogger/#{deviceId}/#{attribute}/#{@pad year}"
       Q.nfcall(fs.readdir, dir).then( (dirs) =>
         months = (_.map dirs, @dirToNum).sort()
-        chain = Q(true)
+        chain = Promise.resolve(true)
         for month in months
           do (month) =>
             chain = chain.then( (cont) =>
@@ -240,7 +240,7 @@ module.exports = (env) ->
       ).catch(  (error) =>
         if error.code is 'ENOENT' 
           env.logger.debug "directory: #{dir} does not exist"
-          return Q(false)
+          return Promise.resolve(false)
         else
           throw error
       )
@@ -250,7 +250,7 @@ module.exports = (env) ->
         "../../datalogger/#{deviceId}/#{attribute}/#{@pad year}/#{@pad month}"
       Q.nfcall(fs.readdir, dir).then( (files) =>
         days = (_.map files, @fileToNum).sort()
-        chain = Q(true)
+        chain = Promise.resolve(true)
         for day in days 
           do (day) =>
             chain = chain.then( (cont) =>
@@ -261,7 +261,7 @@ module.exports = (env) ->
       ).catch(  (error) =>
         if error.code is 'ENOENT' 
           env.logger.debug "directory: #{dir} does not exist"
-          return Q(false)
+          return Promise.resolve(false)
         else
           throw error
       )     
